@@ -15,10 +15,13 @@ export function getParentSectionNode(node: HTMLElement | null) {
 }
 
 export function getCurrentStepFromDotsList(dotslists: NodeListOf<Element>) {
-    for (let i = 0; i < dotslists.length; i++) {
-        if (dotslists[i]["ariaCurrent"]) {
+    const nodes = Array.from(dotslists);
+    for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i]["ariaCurrent"]) {
             return i
         }
     }
-    return -1;
+    const counts = nodes.map(node => node.classList.length);
+    const baseCount = Math.min(...counts);
+    return nodes.findIndex(node => node.classList.length === baseCount + 1);
 }
