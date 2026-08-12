@@ -62,7 +62,19 @@ function formatTimestamp(datetime?: DownloadParams['datetime']) {
     return (parsed?.isValid() ? parsed : dayjs()).utc().format(FILENAME_DATETIME_FORMAT);
 }
 
-/** `@username`, the per-user download subfolder. Empty when there's no username. */
+/**
+ * `@username`, the per-user download subfolder. Empty when there's no username.
+ *
+ * The username is always the media's AUTHOR, never the profile you were
+ * browsing — a tagged post by @groot on @denchen's page goes to `@groot/`. That
+ * keeps one author's media in one place instead of scattering copies across
+ * every profile whose tagged grid features them. Callers get this right by
+ * resolving from the media payload (`data.owner.username`, `item.user.username`,
+ * `res.owner`); `profile.ts` is the sole page-derived case, which is correct
+ * because an avatar's author is the page owner. Preserve that when merging
+ * upstream: a new download path that passes the page's username would silently
+ * misfile rather than error.
+ */
 export function getUserFolder(username?: string) {
     // Instagram usernames are [A-Za-z0-9._] so this is belt-and-braces, but a
     // stray separator would let the name escape the intended directory, and a
