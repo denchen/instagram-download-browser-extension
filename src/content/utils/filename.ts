@@ -1,11 +1,18 @@
 import dayjs, { Dayjs } from "dayjs";
-import { DEFAULT_DATETIME_FORMAT, DEFAULT_FILENAME_FORMAT, MediaType } from "../../constants";
-import { storageCache } from "./storage";
+import utc from "dayjs/plugin/utc";
+import { FILENAME_DATETIME_FORMAT, MediaType, TYPE_FILENAME_PREFIX } from "../../constants";
+
+dayjs.extend(utc);
 
 export interface DownloadParams {
     url: string;
     username?: string;
     datetime?: string | null | Dayjs | number;
+    /**
+     * No longer part of the filename. Kept on the interface so the ~10 call
+     * sites that compute it don't all have to change; drop it (and their
+     * `getMediaName` calls) if you ever want the plumbing gone.
+     */
     id?: string;
     index?: number;
     type?: MediaType;
@@ -23,60 +30,62 @@ export function getMediaName(url: string) {
     }
 }
 
-export function hashCode(str: string) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = (hash << 5) - hash + char;
-        hash = hash & hash;
+const KNOWN_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif', 'mp4', 'mov']);
+
+/**
+ * Derives the file extension from the URL path rather than from a fetched
+ * blob's MIME type, because the background hands the URL straight to
+ * chrome.downloads and never sees a response body. Normalizes jpeg -> jpg,
+ * which is what the old `setting_format_replace_jpeg_with_jpg` toggle did.
+ */
+export function getExtensionFromUrl(url: string, fallback = 'jpg') {
+    try {
+        const lastSegment = new URL(url).pathname.split('/').pop() ?? '';
+        if (!lastSegment.includes('.')) return fallback;
+        const extension = lastSegment.split('.').pop()!.toLowerCase();
+        if (!KNOWN_EXTENSIONS.has(extension)) return fallback;
+        return extension === 'jpeg' ? 'jpg' : extension;
+    } catch {
+        return fallback;
     }
-    return hash >>> 0;
 }
 
-export const getFilenameFromUrl = async ({ url, username, datetime, id, index, type }: DownloadParams) => {
-    const {
-        setting_format_datetime = DEFAULT_DATETIME_FORMAT,
-        setting_format_filename = DEFAULT_FILENAME_FORMAT,
-        setting_enable_datetime_format,
-    } = storageCache.settings;
+/**
+ * Falls back to the current time when the post time is missing or unparseable.
+ * Both happen in practice: profile pictures carry no timestamp at all, and
+ * profile-reel entries pass `undefined` when the DOM has no readable date.
+ * Without this guard `dayjs(bad).format()` yields the literal string
+ * "Invalid Date", which would collapse every such download onto one filename.
+ */
+function formatTimestamp(datetime?: DownloadParams['datetime']) {
+    const parsed = datetime === undefined || datetime === null ? null : dayjs(datetime);
+    return (parsed?.isValid() ? parsed : dayjs()).utc().format(FILENAME_DATETIME_FORMAT);
+}
 
-    const MAX_ID_LENGTH = 40;
-    const MAX_FILENAME_LENGTH = 128;
+/** `@username`, the per-user download subfolder. Empty when there's no username. */
+export function getUserFolder(username?: string) {
+    // Instagram usernames are [A-Za-z0-9._] so this is belt-and-braces, but a
+    // stray separator would let the name escape the intended directory, and a
+    // pure-dot name would be rejected by chrome.downloads outright.
+    const cleaned = (username ?? '').trim().replace(/[/\\]/g, '');
+    if (!cleaned || /^\.+$/.test(cleaned)) return '';
+    return `@${cleaned}`;
+}
 
-    let processedId = id || '';
+/**
+ * Base name, no extension and no directory: `[<type prefix>]<timestamp>[ <NN>]`.
+ * Used for single files and for entries inside a zip, so it must not include
+ * the `@username/` folder — that's applied by the download path only.
+ */
+export const getFilenameFromUrl = async ({ datetime, index, type }: DownloadParams) => {
+    const prefix = type ? TYPE_FILENAME_PREFIX[type] : '';
+    const suffix = index === undefined ? '' : ` ${index.toString().padStart(2, '0')}`;
+    return `${prefix}${formatTimestamp(datetime)}${suffix}`;
+};
 
-    // Automatic ID protection: If id is too long (> 40 chars), hash it to a short numeric string (~10 chars).
-    if (processedId.length > MAX_ID_LENGTH) {
-        processedId = hashCode(processedId).toString();
-    }
-
-    // Append index if provided (e.g. _1, _2)
-    if (index !== undefined) {
-        processedId = `${processedId}_${index}`;
-    }
-
-    let filename = processedId;
-
-    if (username && datetime && id) {
-        const formattedDatetime = setting_enable_datetime_format
-            ? dayjs(datetime).format(setting_format_datetime)
-            : dayjs(datetime).unix().toString();
-
-        filename = setting_format_filename
-            .replace(/{username}/g, username)
-            .replace(/{datetime}/g, formattedDatetime)
-            .replace(/{id}/g, processedId)
-            .replace(/{type}/g, type || '');
-    }
-
-    if (!filename) {
-        filename = getMediaName(url);
-    }
-
-    // Global protection: Truncate if total length > 128 to prevent OS errors.
-    if (filename.length > MAX_FILENAME_LENGTH) {
-        filename = filename.substring(0, MAX_FILENAME_LENGTH);
-    }
-
-    return filename;
+/** `@username - <timestamp>`, the name of the zip itself (no folder, no type prefix). */
+export const getZipFilename = ({ username, datetime }: Pick<DownloadParams, 'username' | 'datetime'>) => {
+    const timestamp = formatTimestamp(datetime);
+    const folder = getUserFolder(username);
+    return folder ? `${folder} - ${timestamp}` : timestamp;
 };

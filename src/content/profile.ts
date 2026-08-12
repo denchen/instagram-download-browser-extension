@@ -1,3 +1,4 @@
+import { MediaType } from '../constants';
 import { downloadResource, openInNewTab } from './utils/fn';
 
 export async function profileOnClicked(target: HTMLAnchorElement) {
@@ -8,9 +9,13 @@ export async function profileOnClicked(target: HTMLAnchorElement) {
     const url = data.get(username) || document.querySelector('header img')?.getAttribute('src');
     if (typeof url === 'string') {
         if (target.className.includes('download-btn')) {
+            // No post time exists for an avatar, so `datetime` is left off and
+            // the filename falls back to the download time.
             downloadResource({
                 url: url,
+                username: username ?? undefined,
                 id: username!,
+                type: MediaType.Profile,
             });
         } else {
             openInNewTab(url);

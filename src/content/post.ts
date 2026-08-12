@@ -128,7 +128,6 @@ async function postGetUrl(articleNode: HTMLElement) {
 }
 
 export async function postOnClicked(target: HTMLAnchorElement) {
-    const { setting_format_use_indexing } = storageCache.settings;
     try {
         const articleNode = getParentArticleNode(target);
         if (!articleNode) throw new Error('Cannot find article node');
@@ -165,7 +164,9 @@ export async function postOnClicked(target: HTMLAnchorElement) {
                 username: posterName,
                 datetime: dayjs(postTime),
                 id: res?.origin_data?.id || getMediaName(url),
-                index: setting_format_use_indexing && mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
+                // Always indexed: every item in a carousel shares the post's
+                // timestamp, so the ordinal is what keeps their names distinct.
+                index: mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
                 type: MediaType.Post,
             });
         } else {

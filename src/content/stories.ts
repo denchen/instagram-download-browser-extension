@@ -96,7 +96,6 @@ export class StoriesPageHandler implements PageHandler {
         const pathname = window.location.pathname;
         const pathnameArr = pathname.split('/').filter((e) => e);
         const posterName = pathnameArr[1];
-        const { setting_format_use_indexing } = storageCache.settings;
 
         const handleMedia = (item: Stories.ReelsMedum, mediaIndex: number) => {
             const media = item.items[mediaIndex];
@@ -112,12 +111,13 @@ export class StoriesPageHandler implements PageHandler {
                     openInNewTab(obj.url);
                 }
             };
+            // No index: each story carries its own taken_at, so timestamps
+            // already differ between items in the tray.
             final({
                 url: url,
                 username: item.user.username,
                 datetime: dayjs.unix(media.taken_at),
                 id: item.id,
-                index: setting_format_use_indexing ? mediaIndex + 1 : undefined,
             });
             return true;
         };

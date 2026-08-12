@@ -1,7 +1,6 @@
-import { MESSAGE_OPEN_URL } from '../../constants';
-import { DownloadParams, getFilenameFromUrl } from './filename';
+import { MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from '../../constants';
+import { DownloadParams, getExtensionFromUrl, getFilenameFromUrl, getUserFolder } from './filename';
 
-import { storageCache } from './storage';
 
 export async function openInNewTab(url: string) {
     try {
@@ -12,10 +11,7 @@ export async function openInNewTab(url: string) {
 }
 
 async function forceDownload(blob: string, filename: string, extension: string) {
-    const { setting_format_replace_jpeg_with_jpg } = storageCache.settings;
-    if (setting_format_replace_jpeg_with_jpg) {
-        extension = extension.replace('jpeg', 'jpg');
-    }
+    extension = extension.replace('jpeg', 'jpg');
     const a = document.createElement('a');
     a.href = blob;
     a.download = `${filename}.${extension}`;
@@ -165,15 +161,13 @@ export const getUrlFromInfoApi = async (articleNode: HTMLElement, mediaIdx = 0):
     }
 };
 
-export async function downloadResource(params: DownloadParams) {
-    const { url } = params
-    console.log(`Downloading ${url}`);
-    const filename = await getFilenameFromUrl(params);
-
-    if (url.startsWith('blob:')) {
-        forceDownload(url, filename, 'mp4');
-        return;
-    }
+/**
+ * Fetches inside the page and saves through <a download>. Cannot produce a
+ * subfolder — Chrome strips path separators from the download attribute — so
+ * this is only for MediaSource blobs (which can't leave the page) and as a
+ * fallback when the background is unreachable.
+ */
+function downloadInPage(url: string, filename: string) {
     fetch(url, {
         headers: new Headers({
             Origin: location.origin,
@@ -187,6 +181,35 @@ export async function downloadResource(params: DownloadParams) {
             forceDownload(blobUrl, filename, extension || 'jpg');
         })
         .catch((e) => console.error(e));
+}
+
+export async function downloadResource(params: DownloadParams) {
+    const { url, username } = params;
+    console.log(`Downloading ${url}`);
+    const filename = await getFilenameFromUrl(params);
+
+    // A blob: URL is a MediaSource stream owned by the page; the background
+    // has no way to fetch it, so these keep the anchor path and land flat in
+    // the downloads root rather than under @username/.
+    if (url.startsWith('blob:')) {
+        forceDownload(url, filename, 'mp4');
+        return;
+    }
+
+    const folder = getUserFolder(username);
+    const path = `${folder ? `${folder}/` : ''}${filename}.${getExtensionFromUrl(url)}`;
+
+    try {
+        const response = await chrome.runtime.sendMessage({
+            type: MESSAGE_FILE_DOWNLOAD,
+            data: { url, filename: path },
+        });
+        if (response?.ok) return;
+        console.error(`Background download rejected (${response?.error ?? 'no response'}); retrying in-page`);
+    } catch (e) {
+        console.error('Could not reach the background to download; retrying in-page', e);
+    }
+    downloadInPage(url, filename);
 }
 
 export const checkType = () => {

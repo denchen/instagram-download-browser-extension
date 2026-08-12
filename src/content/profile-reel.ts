@@ -221,6 +221,7 @@ export class ReelPageHandler implements PageHandler {
                     username: posterName,
                     datetime: dayjs(postTime),
                     id: getMediaName(url),
+                    type: MediaType.Reel,
                 });
             } else {
                 openInNewTab(url);

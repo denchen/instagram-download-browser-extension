@@ -6,11 +6,8 @@ export interface StorageSettings {
     setting_enable_threads?: boolean;
     setting_enable_video_controls?: boolean;
     setting_enable_explore_video_clickthrough?: boolean;
+    /** Firefox background only; the Chrome path always normalizes jpeg -> jpg. */
     setting_format_replace_jpeg_with_jpg?: boolean;
-    setting_format_use_indexing?: boolean;
-    setting_enable_datetime_format?: boolean;
-    setting_format_filename?: string;
-    setting_format_datetime?: string;
 
     [key: string]: any;
 }

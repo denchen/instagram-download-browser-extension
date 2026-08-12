@@ -4,7 +4,6 @@ import { DownloadParams, getMediaName } from './utils/filename';
 import type { Highlight } from '../types/highlights';
 import type { ReelsMedia } from '../types/global';
 import { MediaType } from "../constants";
-import { storageCache } from './utils/storage';
 import { getParentSectionNode } from "./utils/dom";
 
 function findHighlight(obj: Record<string, any>): Highlight.XdtApiV1FeedReelsMediaConnection | undefined {
@@ -28,7 +27,6 @@ export async function highlightsOnClicked(target: HTMLAnchorElement, containerNo
     }
     const pathname = window.location.pathname; // "/stories/highlights/18023929792378379/"
     const pathnameArr = pathname.split('/');
-    const { setting_format_use_indexing } = storageCache.settings;
 
     const final = (url: string, filenameObj?: Omit<DownloadParams, 'url' | 'type'>) => {
         if (target.className.includes('download-btn')) {
@@ -70,11 +68,12 @@ export async function highlightsOnClicked(target: HTMLAnchorElement, containerNo
     const handleMedias = (data: Highlight.Node) => {
         const media = data.items[mediaIndex];
         const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+        // No index: each highlight item carries its own taken_at, so their
+        // timestamps already differ.
         final(url, {
             username: data.user.username,
             datetime: dayjs.unix(media.taken_at),
             id: data.id,
-            index: setting_format_use_indexing ? mediaIndex + 1 : undefined
         });
     };
 

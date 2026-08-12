@@ -1,18 +1,16 @@
 import type { ReelsMedia } from '../types/global';
 import { findValueByKey, saveHighlights, saveProfileReel, saveReels, saveStories } from './fn';
-import { CONFIG_LIST, MESSAGE_OPEN_URL, DEFAULT_FILENAME_FORMAT, DEFAULT_DATETIME_FORMAT } from '../constants';
+import { CONFIG_LIST, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from '../constants';
 
 chrome.runtime.onInstalled.addListener(async () => {
     const result = await chrome.storage.sync.get(CONFIG_LIST);
-    const defaults: Record<string, any> = {
-        setting_format_filename: DEFAULT_FILENAME_FORMAT,
-        setting_format_datetime: DEFAULT_DATETIME_FORMAT,
-    };
 
-    const updates: Record<string, any> = {};
+    // Every remaining setting is a boolean that defaults on. The filename and
+    // datetime format strings are gone — naming is no longer configurable.
+    const updates: Record<string, boolean> = {};
     CONFIG_LIST.forEach((i) => {
         if (result[i] === undefined) {
-            updates[i] = defaults[i] ?? true;
+            updates[i] = true;
         }
     });
 
@@ -25,11 +23,53 @@ chrome.runtime.onStartup.addListener(() => {
     chrome.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
 });
 
-chrome.runtime.onMessage.addListener((message, sender) => {
+/**
+ * A download that starts successfully can still fail once headers arrive (an
+ * expired CDN signature returns 403). chrome.downloads.download has already
+ * resolved by then, so log the interruption here rather than letting the file
+ * silently not appear.
+ */
+function reportDownloadFailures(id: number, filename: string) {
+    const onChanged = (delta: chrome.downloads.DownloadDelta) => {
+        if (delta.id !== id) return;
+        if (delta.error?.current) {
+            console.error(`Download of ${filename} failed: ${delta.error.current}`);
+        }
+        const state = delta.state?.current;
+        if (state === 'complete' || state === 'interrupted') {
+            chrome.downloads.onChanged.removeListener(onChanged);
+        }
+    };
+    chrome.downloads.onChanged.addListener(onChanged);
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log(message, sender);
     const { type, data } = message;
     if (type === MESSAGE_OPEN_URL) {
         chrome.tabs.create({ url: data, index: sender.tab!.index + 1 });
+        return false;
+    }
+    if (type === MESSAGE_FILE_DOWNLOAD) {
+        // `filename` may contain a subdirectory relative to the downloads root,
+        // which is the whole reason single-file saves come through here instead
+        // of using an <a download> in the content script.
+        (async () => {
+            try {
+                const id = await chrome.downloads.download({
+                    url: data.url,
+                    filename: data.filename,
+                    conflictAction: 'uniquify',
+                });
+                reportDownloadFailures(id, data.filename);
+                sendResponse({ ok: true, id });
+            } catch (e: any) {
+                const error = String(e?.message ?? e);
+                console.error(`Could not start download of ${data.filename}: ${error}`);
+                sendResponse({ ok: false, error });
+            }
+        })();
+        return true;
     }
     return false;
 });

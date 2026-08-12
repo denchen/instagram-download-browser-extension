@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
 import { getMediaName } from './utils/filename';
 import { MediaType } from "../constants";
-import { storageCache } from './utils/storage';
 
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
     const poster = videoElem.getAttribute('poster');
@@ -113,7 +112,6 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
     const containerNode = document.querySelector<HTMLElement>('section main');
     if (!containerNode) return;
 
-    const { setting_format_use_indexing } = storageCache.settings;
     try {
         if (target.className.includes('zip-btn')) {
             const { handleZipDownload } = await import("./utils/zip")
@@ -144,7 +142,9 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
                 username: posterName,
                 datetime: dayjs(postTime),
                 id: res?.origin_data?.id || getMediaName(url),
-                index: setting_format_use_indexing && mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
+                // Always indexed: every item in a carousel shares the post's
+                // timestamp, so the ordinal is what keeps their names distinct.
+                index: mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
                 type: MediaType.Post,
             });
         } else {

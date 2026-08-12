@@ -22,7 +22,8 @@
   },
   "permissions": [
     "storage",
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "downloads"
   ],
   "background": {
     "service_worker": "background/chrome.js",

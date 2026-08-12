@@ -1,10 +1,15 @@
 import dayjs from "dayjs";
 import { MESSAGE_ZIP_DOWNLOAD } from "../../constants";
 import { getDataFromAPI, getImgOrVideoUrl } from "./fn";
-import { getFilenameFromUrl } from "./filename";
-import { MediaType } from "../../constants";
-import { storageCache } from "./storage";
+import { getFilenameFromUrl, getZipFilename } from "./filename";
 
+/**
+ * Firefox assembles the zip in its background (it can structured-clone Blobs
+ * over runtime.sendMessage, which Chrome cannot). Entry and zip names come from
+ * the shared helpers below so this stays coherent, but src/background/firefox.ts
+ * itself was deliberately left on the old scheme and is unverified — see the
+ * note in src/constants.ts.
+ */
 async function handleZipFirefox(articleNode: HTMLElement) {
     const data = await getDataFromAPI(articleNode);
     const blobList = [];
@@ -22,9 +27,7 @@ async function handleZipFirefox(articleNode: HTMLElement) {
                     url: url,
                     username: resource.owner?.username || data.owner.username,
                     datetime: dayjs.unix(resource.taken_at),
-                    id: resource.pk,
                     index: index + 1,
-                    type: MediaType.Post,
                 });
                 const response = await fetch(url, {
                     headers: new Headers({
@@ -37,7 +40,7 @@ async function handleZipFirefox(articleNode: HTMLElement) {
                     return null;
                 }
                 const content = await response.blob();
-                return { filename: `${(index + 1).toString().padStart(2, '0')}-${filename}`, content };
+                return { filename, content };
             })
         );
         blobList.push(...list.filter((e) => e));
@@ -57,7 +60,7 @@ async function handleZipFirefox(articleNode: HTMLElement) {
             url: url,
             username: data.owner.username,
             datetime: dayjs.unix(data.taken_at),
-            id: data.code || data.id,
+            index: 1,
         });
         const content = await response.blob();
         blobList.push({ filename, content });
@@ -66,12 +69,9 @@ async function handleZipFirefox(articleNode: HTMLElement) {
         type: MESSAGE_ZIP_DOWNLOAD,
         data: {
             blobList,
-            zipFileName: await getFilenameFromUrl({
-                url: '',
+            zipFileName: getZipFilename({
                 username: data.owner.username,
                 datetime: dayjs.unix(data.taken_at),
-                id: data.code || data.id,
-                type: MediaType.Post,
             }),
         },
     });
@@ -83,7 +83,6 @@ async function handleZipChrome(articleNode: HTMLElement) {
     const data = await getDataFromAPI(articleNode);
     const zipFileWriter = new BlobWriter();
     const zipWriter = new ZipWriter(zipFileWriter);
-    const { setting_format_replace_jpeg_with_jpg } = storageCache.settings;
     if (data.caption) {
         await zipWriter.add("caption.txt", new TextReader(data.caption.text), { useWebWorkers: false });
     }
@@ -102,21 +101,17 @@ async function handleZipChrome(articleNode: HTMLElement) {
                 continue;
             }
             const content = await response.blob();
+            // The ordinal comes from `index` inside the base name (as ` 01`);
+            // there is deliberately no separate prefix here anymore.
             const filename = await getFilenameFromUrl({
                 url: url,
                 username: resource.owner?.username || data.owner.username,
                 datetime: dayjs.unix(resource.taken_at),
-                id: resource.pk,
                 index: i + 1,
             });
             let extension = content.type.split('/').pop() || 'jpg';
-            if (setting_format_replace_jpeg_with_jpg) {
-                extension = extension.replace('jpeg', 'jpg');
-            }
-            await zipWriter.add(
-                `${(i + 1).toString().padStart(2, '0')}-${filename}.${extension}`,
-                new BlobReader(content), { useWebWorkers: false }
-            );
+            if (extension === 'jpeg') extension = 'jpg';
+            await zipWriter.add(`${filename}.${extension}`, new BlobReader(content), { useWebWorkers: false });
         }
     } else {
         const url = getImgOrVideoUrl(data);
@@ -130,17 +125,17 @@ async function handleZipChrome(articleNode: HTMLElement) {
             console.error(`Failed to fetch ${url}`);
             return;
         }
+        // A lone entry still gets ` 01`, so single-image and carousel zips look
+        // the same inside.
         const filename = await getFilenameFromUrl({
             url: url,
             username: data.owner.username,
             datetime: dayjs.unix(data.taken_at),
-            id: data.code || data.id,
+            index: 1,
         });
         const content = await response.blob();
         let extension = content.type.split('/').pop() || 'jpg';
-        if (setting_format_replace_jpeg_with_jpg) {
-            extension = extension.replace('jpeg', 'jpg');
-        }
+        if (extension === 'jpeg') extension = 'jpg';
         await zipWriter.add(filename + '.' + extension, new BlobReader(content), {
             useWebWorkers: false,
         });
@@ -150,12 +145,10 @@ async function handleZipChrome(articleNode: HTMLElement) {
     const blobUrl = URL.createObjectURL(zipContent);
     const a = document.createElement('a');
     a.href = blobUrl;
-    a.download = await getFilenameFromUrl({
-        url: '',
+    // `@username - <timestamp>.zip`, with no subfolder and no type prefix.
+    a.download = getZipFilename({
         username: data.owner.username,
         datetime: dayjs.unix(data.taken_at),
-        id: data.code || data.id,
-        type: MediaType.Post,
     }) + '.zip';
     document.body.appendChild(a);
     a.click();

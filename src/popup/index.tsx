@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.scss';
 
-import { CONFIG_LIST, DEFAULT_DATETIME_FORMAT, DEFAULT_FILENAME_FORMAT } from '../constants';
+import { CONFIG_LIST } from '../constants';
 import SettingItem from './SettingItem';
 
 function App() {
@@ -10,13 +10,7 @@ function App() {
    const [threads, setThreads] = useState<boolean>(true);
    const [enableVideoControl, setEnableVideoControl] = useState<boolean>(true);
    const [enableExploreClickthrough, setEnableExploreClickthrough] = useState<boolean>(true);
-   const [replaceJpegWithJpg, setReplaceJpegWithJpg] = useState<boolean>(true);
-   const [useIndexing, setUseIndexing] = useState<boolean>(true);
-   const [enableDatetimeFormat, setEnableDatetimeFormat] = useState<boolean>(true);
    const [enableZipDownload, setEnableZipDownload] = useState<boolean>(true);
-
-   const [fileNameFormat, setFileNameFormat] = useState<string>(DEFAULT_FILENAME_FORMAT);
-   const [dateTimeFormat, setDateTimeFormat] = useState<string>(DEFAULT_DATETIME_FORMAT);
 
    const isMobile = navigator && navigator.userAgent && /Mobi|Android|iPhone/i.test(navigator.userAgent);
 
@@ -26,13 +20,7 @@ function App() {
          setThreads(!!res.setting_enable_threads);
          setEnableVideoControl(!!res.setting_enable_video_controls);
          setEnableExploreClickthrough(res.setting_enable_explore_video_clickthrough ?? true);
-         setReplaceJpegWithJpg(!!res.setting_format_replace_jpeg_with_jpg);
-         setUseIndexing(!!res.setting_format_use_indexing);
-         setEnableDatetimeFormat(!!res.setting_enable_datetime_format);
          setEnableZipDownload(!!res.setting_show_zip_download_icon);
-
-         setFileNameFormat(res.setting_format_filename || DEFAULT_FILENAME_FORMAT);
-         setDateTimeFormat(res.setting_format_datetime || DEFAULT_DATETIME_FORMAT);
       });
    }, []);
 
@@ -74,58 +62,10 @@ function App() {
                />
 
                <h2>Download File Name Settings</h2>
-               <SettingItem
-                  value={replaceJpegWithJpg}
-                  setValue={setReplaceJpegWithJpg}
-                  label="Replace .jpeg With .jpg"
-                  id="setting_format_replace_jpeg_with_jpg"
-               />
-               <SettingItem
-                  value={useIndexing}
-                  setValue={setUseIndexing}
-                  label="Append the index to carousel media (e.g. 01, 02)"
-                  id="setting_format_use_indexing"
-               />
-
-               <div className="group">
-                  <input
-                     type="text"
-                     value={fileNameFormat}
-                     onChange={(e) => {
-                        const value = (e.target as HTMLInputElement).value;
-                        setFileNameFormat(value);
-                        chrome.storage.sync.set({ setting_format_filename: value || DEFAULT_FILENAME_FORMAT });
-                     }}
-                  />
-                  <span className="highlight"></span>
-                  <span className="bar"></span>
-                  <label>Filename Format</label>
-               </div>
-               <p className="hint">Supported Tags: {'{username}, {id}, {datetime}, {type}'}</p>
-
-               <SettingItem
-                  value={enableDatetimeFormat}
-                  setValue={setEnableDatetimeFormat}
-                  label="Enable Datetime Format (will use Unix format if not enabled)"
-                  id="setting_enable_datetime_format"
-               />
-
-               {enableDatetimeFormat && (
-                  <div className="group">
-                     <input
-                        type="text"
-                        value={dateTimeFormat}
-                        onChange={(e) => {
-                           const value = (e.target as HTMLInputElement).value;
-                           setDateTimeFormat(value);
-                           chrome.storage.sync.set({ setting_format_datetime: value || DEFAULT_DATETIME_FORMAT });
-                        }}
-                     />
-                     <span className="highlight"></span>
-                     <span className="bar"></span>
-                     <label>Datetime Format</label>
-                  </div>
-               )}
+               <p className="hint">
+                  Files are saved as <code>@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext</code> in UTC, and zips as{' '}
+                  <code>@username - YYYY.MM.DDTHH.mm.ss.zip</code>. This is fixed and no longer configurable.
+               </p>
 
                <h2>Video Settings</h2>
                <SettingItem
