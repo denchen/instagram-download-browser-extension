@@ -7,8 +7,7 @@ import { handleThreadsButton } from "./button";
 
 const LIKE_BUTTON = "M16.5 2C14.8335 2 13.2217 2.70703 12 3.93652C10.7783 2.70704 9.1665 2 7.5 2C3.3785 2 0.5 5.08423 0.5 9.5C0.5 14.1284 4.84516 19.4619 11.311 22.7719C11.5267 22.8827 11.7633 22.9379 12 22.9379C12.2367 22.9379 12.4733 22.8827 12.689 22.7719C19.1548 19.4619 23.5 14.1284 23.5 9.5C23.5 5.08423 20.6217 2 16.5 2ZM12 20.8764C6.30767 17.8962 2.5 13.3467 2.5 9.5C2.5 6.15893 4.4625 4 7.5 4C9.5 4 11.25 5.75 12 7.5C12.75 5.75 14.5 4 16.5 4C19.5377 4 21.5 6.15893 21.5 9.5C21.5 13.3467 17.6923 17.8962 12 20.8764Z"
 
-function handleList(list: NodeListOf<Element>) {
-    const iconColor = window.getComputedStyle(document.body).backgroundColor === 'rgb(0, 0, 0)' ? 'white' : 'black';
+function handleList(list: NodeListOf<Element>, iconColor: IconColor) {
     list.forEach((n) => {
         const node = n.firstElementChild?.firstElementChild;
         if (!node) return;
@@ -23,7 +22,7 @@ function handleList(list: NodeListOf<Element>) {
     });
 }
 
-export function handleThreads() {
+export function handleThreads(iconColor: IconColor) {
     const pathname = window.location.pathname;
     const pathnameList = pathname.split('/').filter((e) => e);
 
@@ -32,7 +31,7 @@ export function handleThreads() {
     if (pathname === '/') {
         const notLoginNode = document.querySelector('div[data-nosnippet="true"]>div>div');
         if (notLoginNode) {
-            handleList(notLoginNode.querySelectorAll('div[data-pagelet^="threads_logged_out_feed_"]'));
+            handleList(notLoginNode.querySelectorAll('div[data-pagelet^="threads_logged_out_feed_"]'), iconColor);
         } else {
             const layoutDiv = document.querySelector('div[id="barcelona-page-layout"]')
             const headerDiv = layoutDiv?.querySelector('div[id="barcelona-header"]');
@@ -40,13 +39,13 @@ export function handleThreads() {
                 'div[data-visualcompletion="ignore"][data-thumb="1"]'
             )?.parentElement?.firstElementChild;
             if (wrapper) {
-                handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_feed_"]'));
+                handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_feed_"]'), iconColor);
             }
         }
     } else if (pathname === '/search') {
         const wrapperNode = document.querySelector('div[data-thumb="1"][data-visualcompletion="ignore"]')?.parentElement?.firstElementChild;
         if (wrapperNode) {
-            handleList(wrapperNode.querySelectorAll('div[data-pagelet^="threads_search_results_"]'));
+            handleList(wrapperNode.querySelectorAll('div[data-pagelet^="threads_search_results_"]'), iconColor);
         }
     } else if (isPostDetailPage) {
         const layout = document.querySelectorAll('#barcelona-page-layout');
@@ -60,7 +59,7 @@ export function handleThreads() {
             }
         }
         if (wrapper) {
-            handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_post_page_"]'));
+            handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_post_page_"]'), iconColor);
         }
     } else if (pathname.startsWith('/@')) {
         const layout = document.querySelectorAll('#barcelona-page-layout');
@@ -74,7 +73,7 @@ export function handleThreads() {
             }
         }
         if (wrapper) {
-            handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_profile_posts_timeline_"]'));
+            handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_profile_posts_timeline_"]'), iconColor);
         }
     }
 }
@@ -86,7 +85,7 @@ export class ThreadsPageHandler implements PageHandler {
 
     process(iconColor: IconColor) {
         if (storageCache.settings.setting_enable_threads) {
-            handleThreads();
+            handleThreads(iconColor);
         }
     }
 
