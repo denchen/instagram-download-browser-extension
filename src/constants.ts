@@ -4,9 +4,6 @@ export const CONFIG_LIST = [
     'setting_enable_threads',
     'setting_enable_video_controls',
     'setting_enable_explore_video_clickthrough',
-    // Read only by the Firefox background, which still uses the old naming.
-    // The Chrome path always normalizes jpeg -> jpg, so it ignores this.
-    'setting_format_replace_jpeg_with_jpg',
 ];
 
 export enum MediaType {
@@ -33,11 +30,6 @@ export const TYPE_FILENAME_PREFIX: Record<MediaType, string> = {
     [MediaType.Threads]: 'thread - ',
     [MediaType.Profile]: 'profile - ',
 };
-
-// Only the Firefox background still reads the old template settings; it was
-// deliberately left on the previous naming scheme (see src/background/firefox.ts).
-export const DEFAULT_FILENAME_FORMAT = `{username}-{id}-{datetime}`;
-export const DEFAULT_DATETIME_FORMAT = 'YYYYMMDD_HHmmss';
 
 export const EXTENSION_ID = 'oejjpeobjicdpgaijialfpfcbdnanajk';
 

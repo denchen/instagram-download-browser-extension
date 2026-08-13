@@ -5,10 +5,10 @@ import { getFilenameFromUrl, getZipFilename } from "./filename";
 
 /**
  * Firefox assembles the zip in its background (it can structured-clone Blobs
- * over runtime.sendMessage, which Chrome cannot). Entry and zip names come from
- * the shared helpers below so this stays coherent, but src/background/firefox.ts
- * itself was deliberately left on the old scheme and is unverified — see the
- * note in src/constants.ts.
+ * over runtime.sendMessage, which Chrome cannot), so entries arrive there as
+ * {filename, content} pairs and src/background/firefox.ts appends the extension.
+ * Names come from the same shared helpers as the Chrome path, so both browsers
+ * produce identical output.
  */
 async function handleZipFirefox(articleNode: HTMLElement) {
     const data = await getDataFromAPI(articleNode);

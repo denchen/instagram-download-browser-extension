@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Instagram Downloader",
+  "name": "Instagram Downloader (custom fork)",
   "version": "__MSG_extVersion__",
   "description": "Help users download images and videos easily on Instagram",
   "homepage_url": "https://github.com/TheKonka/instagram-download-browser-extension",
@@ -32,7 +32,8 @@
     "unlimitedStorage",
     "webRequest",
     "webRequestBlocking",
-    "webRequestFilterResponse"
+    "webRequestFilterResponse",
+    "downloads"
   ],
   "background": {
     "scripts": [
@@ -42,7 +43,7 @@
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "1094918@gmail.com"
+      "id": "instagram-downloader@denchen"
     },
     "gecko_android": {
       "strict_min_version": "120.0a1"

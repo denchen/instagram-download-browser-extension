@@ -1,7 +1,6 @@
 import {
     CONFIG_LIST,
-    DEFAULT_DATETIME_FORMAT,
-    DEFAULT_FILENAME_FORMAT,
+    MESSAGE_FILE_DOWNLOAD,
     MESSAGE_OPEN_URL,
     MESSAGE_ZIP_DOWNLOAD
 } from '../constants';
@@ -9,17 +8,14 @@ import type { ReelsMedia } from '../types/global';
 import { findValueByKey, limitMapSize, saveHighlights, saveProfileReel, saveReels, saveStories } from './fn';
 
 browser.runtime.onInstalled.addListener(async () => {
-    // 1. Initialize default settings
+    // 1. Initialize default settings. Every remaining setting is a boolean that
+    // defaults on; filenames are no longer configurable on either browser.
     const result = await browser.storage.sync.get(CONFIG_LIST);
-    const defaults: Record<string, any> = {
-        setting_format_filename: DEFAULT_FILENAME_FORMAT,
-        setting_format_datetime: DEFAULT_DATETIME_FORMAT,
-    };
 
-    const updates: Record<string, any> = {};
+    const updates: Record<string, boolean> = {};
     CONFIG_LIST.forEach((i) => {
         if (result[i] === undefined) {
-            updates[i] = defaults[i] ?? true;
+            updates[i] = true;
         }
     });
 
@@ -236,6 +232,26 @@ browser.webRequest.onBeforeRequest.addListener(
     ['blocking']
 );
 
+/**
+ * A download that starts successfully can still fail once headers arrive (an
+ * expired CDN signature returns 403), by which point download() has already
+ * resolved. Log the interruption rather than letting the file silently not
+ * appear. Mirrors reportDownloadFailures in ./chrome.ts.
+ */
+function reportDownloadFailures(id: number, filename: string) {
+    const onChanged = (delta: { id: number; error?: { current?: string }; state?: { current?: string } }) => {
+        if (delta.id !== id) return;
+        if (delta.error?.current) {
+            console.error(`Download of ${filename} failed: ${delta.error.current}`);
+        }
+        const state = delta.state?.current;
+        if (state === 'complete' || state === 'interrupted') {
+            browser.downloads.onChanged.removeListener(onChanged);
+        }
+    };
+    browser.downloads.onChanged.addListener(onChanged);
+}
+
 browser.runtime.onMessage.addListener(async (message, sender) => {
     console.log(message, sender);
     const { type, data } = message;
@@ -243,6 +259,23 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
         case MESSAGE_OPEN_URL:
             await browser.tabs.create({ url: data, index: sender.tab!.index + 1 });
             break;
+        case MESSAGE_FILE_DOWNLOAD: {
+            // `filename` carries the `@username/` subpath. Verified that Firefox
+            // honors a relative subdirectory here, same as Chrome.
+            try {
+                const id = await browser.downloads.download({
+                    url: data.url,
+                    filename: data.filename,
+                    conflictAction: 'uniquify',
+                });
+                reportDownloadFailures(id, data.filename);
+                return { ok: true, id };
+            } catch (e: any) {
+                const error = String(e?.message ?? e);
+                console.error(`Could not start download of ${data.filename}: ${error}`);
+                return { ok: false, error };
+            }
+        }
         case MESSAGE_ZIP_DOWNLOAD:
             const { BlobReader, BlobWriter, TextReader, ZipWriter } = await import('@zip.js/zip.js');
             const zipFileWriter = new BlobWriter();
@@ -255,11 +288,10 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
                     });
                     continue
                 }
+                // Normalized unconditionally, matching the Chrome path, so both
+                // browsers produce identical names.
                 let extension = content.type.split('/').pop() || 'jpg';
-                const { setting_format_replace_jpeg_with_jpg } = await browser.storage.sync.get(['setting_format_replace_jpeg_with_jpg']);
-                if (setting_format_replace_jpeg_with_jpg) {
-                    extension = extension.replace('jpeg', 'jpg');
-                }
+                if (extension === 'jpeg') extension = 'jpg';
                 await zipWriter.add(filename + '.' + extension, new BlobReader(content), {
                     useWebWorkers: false,
                 });
