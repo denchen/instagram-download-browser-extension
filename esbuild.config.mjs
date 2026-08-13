@@ -6,6 +6,9 @@ import * as esbuild from 'esbuild';
 import { sassPlugin } from 'esbuild-sass-plugin';
 
 const platform = argv[2];
+// Watch is opt-in. A plain build has to exit, or it can't be chained — `web-ext
+// sign` in particular must not start until the bundle is definitively written.
+const watch = argv.includes('--watch');
 
 try {
    await rm(`dist/${platform}`, { recursive: true });
@@ -51,4 +54,12 @@ const ctx = await esbuild.context({
    ],
 });
 
-ctx.watch();
+if (watch) {
+   await ctx.watch();
+   console.log(`[${Date()}] watching ${platform} for changes — Ctrl-C to stop`);
+} else {
+   // context() alone builds nothing, so a one-shot needs an explicit rebuild.
+   // Errors reject here and fail the command, where watch mode would swallow them.
+   await ctx.rebuild();
+   await ctx.dispose();
+}
