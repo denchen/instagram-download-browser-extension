@@ -82,13 +82,55 @@ const findMediaId = async (postId: string) => {
     return mediaIdCache.get(postId);
 };
 
+/**
+ * Instagram returns several renditions of every photo. They have long been
+ * ordered largest-first, so `candidates[0]` is normally the original — but
+ * that is a convention, not a contract, and if it ever changed every download
+ * would silently shrink. Pick by pixel area instead, falling back to the first
+ * entry when dimensions are missing.
+ *
+ * Deliberately NOT applied to video_versions: those entries carry a `type`
+ * denoting different encodings, so largest-area is not reliably "the best one".
+ */
+function largestCandidate(candidates: Record<string, any>[]) {
+    return candidates.reduce((best, current) => {
+        const bestArea = (best.width ?? 0) * (best.height ?? 0);
+        const currentArea = (current.width ?? 0) * (current.height ?? 0);
+        return currentArea > bestArea ? current : best;
+    }, candidates[0]);
+}
+
 export const getImgOrVideoUrl = (item: Record<string, any>) => {
     if ('video_versions' in item) {
         return item.video_versions[0].url;
     } else {
-        return item.image_versions2.candidates[0].url;
+        return largestCandidate(item.image_versions2.candidates).url;
     }
 };
+
+// Instagram serves most post media at 1080px, so a `p1080x1080` URL is the
+// original rather than a downscale. Warning on it would make the check noise.
+const FULL_SIZE_EDGE = 1080;
+
+/**
+ * Instagram encodes server-side resizes in the URL as `stp=..._s150x150` or as
+ * a `/s640x640/` path segment. A URL scraped from the DOM is whatever the page
+ * rendered, which for a grid thumbnail or an avatar is far smaller than the
+ * original. Nothing can recover the full-size URL at that point — the API
+ * lookup already failed — so just make the downgrade visible rather than
+ * letting it pass as an ordinary download.
+ *
+ * Best-effort only: not every downscaled URL carries a size token, so silence
+ * here is not proof you got the original. File size is the reliable tell.
+ */
+function warnIfDownscaled(url: string) {
+    const match = url.match(/[_/][sp](\d{2,4})x(\d{2,4})/);
+    if (!match) return;
+    const width = Number(match[1]);
+    const height = Number(match[2]);
+    if (Math.max(width, height) >= FULL_SIZE_EDGE) return;
+    console.warn(`Downloading a ${width}x${height} rendition rather than the original — the media API lookup fell back to a page-rendered URL: ${url}`);
+}
 
 export const getDataFromAPI = async (articleNode: HTMLElement) => {
     try {
@@ -186,6 +228,7 @@ function downloadInPage(url: string, filename: string) {
 export async function downloadResource(params: DownloadParams) {
     const { url, username } = params;
     console.log(`Downloading ${url}`);
+    warnIfDownscaled(url);
     const filename = await getFilenameFromUrl(params);
 
     // A blob: URL is a MediaSource stream owned by the page; the background
