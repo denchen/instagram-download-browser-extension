@@ -35,6 +35,16 @@ export const EXTENSION_ID = 'oejjpeobjicdpgaijialfpfcbdnanajk';
 
 export const CLASS_CUSTOM_BUTTON = 'custom-btn';
 
+// Shown when a post/carousel download fails. The console carries the precise
+// cause; this only has to say what happened and name the one remedy the user
+// can act on, since a stale ?img_index after using the modal arrows is by far
+// the most common trigger.
+export const DOWNLOAD_FAILED_MESSAGE =
+    'Could not get the media for this post.\n\n' +
+    'If you moved between posts using the arrows inside the popup, the page URL is out of sync — ' +
+    'reload the page and try again.\n\n' +
+    'See the browser console for details.';
+
 export const MESSAGE_OPEN_URL = "open_url"
 export const MESSAGE_ZIP_DOWNLOAD = "zip_download"
 // Single-file downloads go through the background so chrome.downloads can put

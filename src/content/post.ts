@@ -2,7 +2,7 @@ import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab, } from './utils/fn';
 import { getMediaName } from './utils/filename';
 import { getCurrentStepFromDotsList, getParentArticleNode } from "./utils/dom";
-import { CLASS_CUSTOM_BUTTON, likeIconSelector, MediaType, tagIconSelector } from "../constants";
+import { CLASS_CUSTOM_BUTTON, DOWNLOAD_FAILED_MESSAGE, likeIconSelector, MediaType, tagIconSelector } from "../constants";
 import { storageCache } from './utils/storage';
 import type { IconColor } from '../types/global';
 import { handleVideoMaskClip } from "./utils/video";
@@ -173,7 +173,7 @@ export async function postOnClicked(target: HTMLAnchorElement) {
             openInNewTab(url);
         }
     } catch (e: any) {
-        alert('post get media failed!');
+        alert(DOWNLOAD_FAILED_MESSAGE);
         console.log(`Uncaught in postOnClicked(): ${e}\n${e.stack}`);
     }
 }

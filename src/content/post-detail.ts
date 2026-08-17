@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
 import { getMediaName } from './utils/filename';
-import { MediaType } from "../constants";
+import { DOWNLOAD_FAILED_MESSAGE, MediaType } from "../constants";
 
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
     const poster = videoElem.getAttribute('poster');
@@ -151,7 +151,7 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
             openInNewTab(url);
         }
     } catch (e: any) {
-        alert('Post Detail Download Failed!');
+        alert(DOWNLOAD_FAILED_MESSAGE);
         console.log(`Uncaught in postDetailOnClicked(): ${e}\n${e.stack}`);
     }
 }
