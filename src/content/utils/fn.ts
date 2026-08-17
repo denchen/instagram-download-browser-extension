@@ -183,6 +183,20 @@ export const getUrlFromInfoApi = async (articleNode: HTMLElement, mediaIdx = 0):
 
     if ('carousel_media' in data) {
         // multi-media post
+        // Math.max only bounds this below. An index past the end yields
+        // undefined and throws in getImgOrVideoUrl, which is the crash seen
+        // when a stale ?img_index survives client-side navigation from a
+        // longer carousel to a shorter one. Refuse rather than clamp: clamping
+        // would quietly download a slide the user is not looking at.
+        if (mediaIdx >= data.carousel_media.length) {
+            console.warn(
+                `Carousel index ${mediaIdx} is out of range for a post with ${data.carousel_media.length} items. ` +
+                `?img_index in the URL is stale, which happens when moving between posts with the modal arrows. ` +
+                `Reload the page to resync. Not recovering from the slide indicators, since those can be stale ` +
+                `from the same navigation and would risk downloading the wrong slide silently.`
+            );
+            return null;
+        }
         const item = data.carousel_media[Math.max(mediaIdx, 0)];
         return {
             ...item,
