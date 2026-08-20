@@ -63,39 +63,49 @@ async function postGetUrl(articleNode: HTMLElement) {
     } else {
         // multiple media
         const isPostView = window.location.pathname.startsWith('/p/');
-        const idxFromUrl = new URLSearchParams(window.location.search).get('img_index');
-        if (idxFromUrl) {
-            mediaIndex = +idxFromUrl - 1
+
+        // Slide index, in descending order of trustworthiness:
+        //   1. the rendered slide indicators, which describe the post actually
+        //      on screen;
+        //   2. ?img_index, which is SPA state Instagram does not reset when the
+        //      modal arrows move between posts, so it can name a slide from a
+        //      previous, longer post;
+        //   3. geometry - whichever <li> currently sits inside the container.
+        // The URL used to be tier 1, which is how a stale index silently picked
+        // the wrong slide, and crashed outright when it pointed past the end.
+        let dotsList: any
+        if (isPostView) {
+            dotsList = articleNode.querySelectorAll(`:scope>div>div:nth-child(1)>div>div>div:nth-child(2)>div`);
         } else {
-            let dotsList: any
-            if (isPostView) {
-                dotsList = articleNode.querySelectorAll(`:scope>div>div:nth-child(1)>div>div>div:nth-child(2)>div`);
+            if (checkType() === 'pc') {
+                dotsList = articleNode.querySelector('button[aria-current]')?.parentNode?.children
             } else {
-                if (checkType() === 'pc') {
-                    dotsList = articleNode.querySelector('button[aria-current]')?.parentNode?.children
-                } else {
-                    dotsList = articleNode.querySelectorAll(`:scope > div > div:nth-child(2) > div>div>div>div>div>div>div:nth-child(2)>div`);
+                dotsList = articleNode.querySelectorAll(`:scope > div > div:nth-child(2) > div>div>div>div>div>div>div:nth-child(2)>div`);
+            }
+        }
+
+        // dotsList can be undefined via the optional-chained querySelector above.
+        const dotsIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+        const idxFromUrl = new URLSearchParams(window.location.search).get('img_index');
+
+        if (dotsIndex >= 0) {
+            mediaIndex = dotsIndex;
+        } else if (idxFromUrl) {
+            console.warn('Could not read the slide indicators; falling back to ?img_index, which may be stale.');
+            mediaIndex = +idxFromUrl - 1;
+        } else {
+            // Neither indicators nor URL: find the slide that is actually visible.
+            console.warn("cannot get dotsList!")
+            const imgList = articleNode.querySelectorAll(`${isPostView ? ':scope>div>div:nth-child(1)' : ''} li img`);
+            const { x, right } = articleNode.getBoundingClientRect();
+            for (const item of [...imgList]) {
+                const rect = item.getBoundingClientRect();
+                if (rect.x > x && rect.right < right) {
+                    url = item.getAttribute('src');
+                    return { url };
                 }
             }
-            // if get dots list fail, try get img url from img element attribute
-            if (dotsList.length === 0) {
-                console.warn("cannot get dotsList!")
-                const imgList = articleNode.querySelectorAll(`${isPostView ? ':scope>div>div:nth-child(1)' : ''} li img`);
-                const { x, right } = articleNode.getBoundingClientRect();
-                for (const item of [...imgList]) {
-                    const rect = item.getBoundingClientRect();
-                    if (rect.x > x && rect.right < right) {
-                        url = item.getAttribute('src');
-                        return { url };
-                    }
-                }
-                return null;
-            }
-            mediaIndex = getCurrentStepFromDotsList(dotsList)  // pc feed page
-            if (mediaIndex == -1) {
-                console.warn("No media index found.");
-                mediaIndex = 0
-            }
+            return null;
         }
         res = await getUrlFromInfoApi(articleNode, mediaIndex);
         url = res?.url;

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
 import { DownloadParams, getMediaName } from './utils/filename';
+import { getCurrentStepFromDotsList } from './utils/dom';
 import { ProfileReel } from '../types/profileReel';
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from '../types/global';
@@ -75,7 +76,15 @@ async function getUrl() {
         } else {
             dotsList = containerNode.querySelectorAll(`div[role=button][aria-hidden="true"][tabindex="0"]>div>div>div>div:nth-child(2)>div`);
         }
-        const mediaIndex = [...dotsList].findIndex((i) => i.classList.length === 2);
+        // Shared helper rather than an inline classList.length === 2: it checks
+        // ariaCurrent first and derives the class-count baseline dynamically.
+        // The -1 guard matters here because an unguarded -1 reaches
+        // positionsMap[-1] below, which would throw on the fallback path.
+        let mediaIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+        if (mediaIndex < 0) {
+            console.warn('Could not read the slide indicators; defaulting to the first slide.');
+            mediaIndex = 0;
+        }
         res = await getUrlFromInfoApi(containerNode, mediaIndex);
         url = res?.url;
         if (!url) {

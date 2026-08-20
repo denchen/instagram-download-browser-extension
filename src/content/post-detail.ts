@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
 import { getMediaName } from './utils/filename';
+import { getCurrentStepFromDotsList } from './utils/dom';
 import { DOWNLOAD_FAILED_MESSAGE, MediaType } from "../constants";
 
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
@@ -60,25 +61,33 @@ async function getUrl(containerNode: HTMLElement) {
         }
     } else {
         // multiple media
-        const idxFromUrl = new URLSearchParams(window.location.search).get('img_index');
-        if (idxFromUrl) {
-            mediaIndex = +idxFromUrl - 1
+        // Same ordering as post.ts: the rendered indicators describe the post on
+        // screen, whereas ?img_index survives client-side navigation between
+        // posts and can therefore name a slide from a different one.
+        let dotsList;
+        if (checkType() === 'pc') {
+            dotsList = isPostDetailWithNameInUrl
+                ? containerNode.querySelectorAll('article>div>div:nth-child(1)>div>div:nth-child(2)>div')
+                : containerNode.querySelectorAll('div[role=button]>div>div>div>div>div>div:nth-child(2)>div');
         } else {
-            let dotsList;
-            if (checkType() === 'pc') {
-                dotsList = isPostDetailWithNameInUrl
-                    ? containerNode.querySelectorAll('article>div>div:nth-child(1)>div>div:nth-child(2)>div')
-                    : containerNode.querySelectorAll('div[role=button]>div>div>div>div>div>div:nth-child(2)>div');
-            } else {
-                dotsList = containerNode.querySelectorAll(`article>div>div:nth-child(2)>div>div:nth-child(2)>div`);
-            }
-            mediaIndex = [...dotsList].findIndex((i) => i.classList.length === 2);
-            if (mediaIndex == -1) {
-                console.warn("No media index found.");
-                mediaIndex = 0
-            }
+            dotsList = containerNode.querySelectorAll(`article>div>div:nth-child(2)>div>div:nth-child(2)>div`);
         }
 
+        // Was an inline findIndex on classList.length === 2, a hardcoded magic
+        // number. The shared helper checks ariaCurrent first and derives the
+        // class-count baseline dynamically.
+        const dotsIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+        const idxFromUrl = new URLSearchParams(window.location.search).get('img_index');
+
+        if (dotsIndex >= 0) {
+            mediaIndex = dotsIndex;
+        } else if (idxFromUrl) {
+            console.warn('Could not read the slide indicators; falling back to ?img_index, which may be stale.');
+            mediaIndex = +idxFromUrl - 1;
+        } else {
+            console.warn('No media index found; defaulting to the first slide.');
+            mediaIndex = 0;
+        }
         res = await getUrlFromInfoApi(containerNode, mediaIndex);
         url = res?.url;
         if (!url) {
