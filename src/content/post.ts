@@ -94,16 +94,34 @@ async function postGetUrl(articleNode: HTMLElement) {
             console.warn('Could not read the slide indicators; falling back to ?img_index, which may be stale.');
             mediaIndex = +idxFromUrl - 1;
         } else {
-            // Neither indicators nor URL: find the slide that is actually visible.
+            // Neither indicators nor URL: fall back to whichever slide is on
+            // screen. Nearest-centre rather than strict containment, because at
+            // narrow widths a slide exactly fills the container — measured
+            // article x=210 right=391 with the visible image at x=210 right=391,
+            // so `rect.x > x && rect.right < right` was false for every image and
+            // this path could never succeed.
+            //
+            // Returns a URL with no `res` and no index, so the caller falls back
+            // to DOM-scraped metadata and the filename gets no ` NN` suffix. The
+            // src may also be a downscaled rendition, which warnIfDownscaled
+            // flags. Degraded but correct, versus failing outright.
             console.warn("cannot get dotsList!")
-            const imgList = articleNode.querySelectorAll(`${isPostView ? ':scope>div>div:nth-child(1)' : ''} li img`);
-            const { x, right } = articleNode.getBoundingClientRect();
-            for (const item of [...imgList]) {
-                const rect = item.getBoundingClientRect();
-                if (rect.x > x && rect.right < right) {
-                    url = item.getAttribute('src');
-                    return { url };
+            const imgList = [...articleNode.querySelectorAll<HTMLImageElement>(`${isPostView ? ':scope>div>div:nth-child(1)' : ''} li img`)];
+            if (imgList.length > 0) {
+                const bounds = articleNode.getBoundingClientRect();
+                const centre = bounds.x + bounds.width / 2;
+                let closest = imgList[0];
+                let closestDistance = Infinity;
+                for (const item of imgList) {
+                    const rect = item.getBoundingClientRect();
+                    const distance = Math.abs(rect.x + rect.width / 2 - centre);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closest = item;
+                    }
                 }
+                url = closest.getAttribute('src');
+                if (url) return { url };
             }
             return null;
         }
