@@ -249,12 +249,25 @@ export async function downloadResource(params: DownloadParams) {
     // has no way to fetch it, so these keep the anchor path and land flat in
     // the downloads root rather than under @username/.
     if (url.startsWith('blob:')) {
+        console.warn(`In-page video stream, so this saves to the downloads root with no @username/ folder — an <a download> cannot create directories: ${filename}.mp4`);
         forceDownload(url, filename, 'mp4');
         return;
     }
 
-    const folder = getUserFolder(username);
-    const path = `${folder ? `${folder}/` : ''}${filename}.${getExtensionFromUrl(url)}`;
+    // An unresolved username used to mean no folder at all, silently, so the
+    // file landed in the downloads root with nothing explaining why. Several
+    // paths can get here without a name: the DOM scrapes in post.ts,
+    // post-detail.ts and profile-reel.ts all rely on deep selectors that can
+    // miss, and post.ts's geometric fallback returns no API data at all, which
+    // forces those scrapes. Fall back to @unknown so the root stays clean and
+    // the folder name itself flags the problem - matching what the API path
+    // already does when it cannot identify an owner.
+    let folder = getUserFolder(username);
+    if (!folder) {
+        console.warn(`Could not resolve a username for ${url}; filing under @unknown/. Both the media API and the DOM fallback failed to identify the poster.`);
+        folder = '@unknown';
+    }
+    const path = `${folder}/${filename}.${getExtensionFromUrl(url)}`;
 
     try {
         const response = await chrome.runtime.sendMessage({
