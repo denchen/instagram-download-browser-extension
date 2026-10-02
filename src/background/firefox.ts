@@ -224,7 +224,10 @@ browser.webRequest.onBeforeRequest.addListener(
             if (method === 'POST' && url === 'https://www.threads.com/ajax/route-definition/') {
                 listener(details);
             }
-        } catch {
+        } catch (e) {
+            // Nothing in the matching above is expected to throw. If it does,
+            // interception stops for that request with no other trace.
+            console.warn('webRequest listener threw while matching an intercepted request.', e);
         }
     },
     { urls: ['https://www.instagram.com/*', 'https://www.threads.com/*'] },

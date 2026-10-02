@@ -235,7 +235,10 @@ export class ReelPageHandler implements PageHandler {
             } else {
                 openInNewTab(url);
             }
-        } catch {
+        } catch (e) {
+            // Not a swallow: the lines below are a genuine fallback chain. Logged
+            // only so the original cause is visible when the fallback fails too.
+            console.warn('Profile-reel primary path failed; falling back to local data, then page scripts.', e);
             const res = await getDataFromLocal();
             if (!res) {
                 if (!document.querySelector('div[role=dialog]')) {

@@ -150,7 +150,12 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
                         });
                         break;
                 }
-            } catch {
+            } catch (e) {
+                // This guards JSON.parse and every saver in the switch above, so
+                // a throw means an intercepted response silently never reached
+                // the cache. The symptom shows up much later as a DOM fallback
+                // rather than as an error, which is why it is worth a line here.
+                console.warn(`Failed to process an intercepted ${api} response; its data was not cached.`, e);
             }
         }
         sendResponse();

@@ -37,6 +37,28 @@ const findAppId = () => {
     return null;
 };
 
+/**
+ * The post's shortcode: taken from the URL where the URL names it, and scraped
+ * from the DOM only when it does not.
+ *
+ * The DOM scan previously returned the *first* `/p/<code>/` link in the
+ * container, which is correct only when the container holds exactly one post.
+ * Callers pass containers that can hold several — `post-detail.ts` and
+ * `profile-reel.ts` both pass all of `section main`, and a profile grid tile's
+ * ancestor <article> can span the whole grid — so a first-match could resolve a
+ * different post than the one clicked and download its media under a
+ * completely plausible filename.
+ *
+ * Two changes. `/p/<code>/` and `/<username>/p/<code>/` are now read straight
+ * off the pathname, which is exact and skips the scan entirely for detail pages.
+ * And when the scan does run, more than one distinct code means the click is
+ * ambiguous, so it refuses instead of guessing: failing visibly beats
+ * downloading the wrong post.
+ *
+ * Refusing is not the ideal end state for a grid, where the right answer is the
+ * post link nearest the clicked element. That needs `target` threaded through
+ * getDataFromAPI and getUrlFromInfoApi, and is left as a follow-up.
+ */
 function findPostId(articleNode: HTMLElement) {
     const pathname = window.location.pathname;
     if (pathname.startsWith('/reels/')) {
@@ -46,20 +68,38 @@ function findPostId(articleNode: HTMLElement) {
     } else if (pathname.startsWith('/reel/')) {
         return pathname.split('/')[2];
     }
-    const postIdPattern = /\/p\/([^/]+)\//;
-    const aNodes = articleNode.querySelectorAll('a');
-    for (let i = 0; i < aNodes.length; ++i) {
-        const link = aNodes[i].getAttribute('href');
-        if (link) {
-            const match = link.match(postIdPattern);
-            if (match) return match[1];
-            const arr = link.split('/').filter(e => e);
-            if (arr.length === 3 && arr[1] === "reel") {
-                return arr[2]
-            }
+
+    // A permalink names the post outright, so there is nothing to infer. Covers
+    // both `/p/<code>/` and the `/<username>/p/<code>/` form.
+    const fromUrl = pathname.match(/^\/(?:[^/]+\/)?p\/([^/]+)\//);
+    if (fromUrl) return fromUrl[1];
+
+    // `/p/<code>/` and `/reel/<code>/` both yield a shortcode findMediaId can
+    // use, so they share one set and one ambiguity check.
+    const codes = new Set<string>();
+    for (const anchor of articleNode.querySelectorAll('a')) {
+        const link = anchor.getAttribute('href');
+        if (!link) continue;
+        const post = link.match(/\/p\/([^/]+)\//);
+        if (post) {
+            codes.add(post[1]);
+            continue;
+        }
+        const segments = link.split('/').filter((e) => e);
+        if (segments.length === 3 && segments[1] === 'reel') {
+            codes.add(segments[2]);
         }
     }
-    return null;
+
+    if (codes.size > 1) {
+        console.warn(
+            `This container holds ${codes.size} different posts (${[...codes].join(', ')}), so which ` +
+            `one was clicked cannot be determined from it. Refusing rather than guessing — taking the ` +
+            `first would download a different post under a correct-looking filename.`
+        );
+        return null;
+    }
+    return codes.size === 1 ? [...codes][0] : null;
 }
 
 const findMediaId = async (postId: string) => {
