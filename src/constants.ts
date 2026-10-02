@@ -13,6 +13,7 @@ export enum MediaType {
     Highlight = 'HGHT',
     Threads = 'THRD',
     Profile = 'PROF',
+    Cover = 'COVR',
 }
 
 // Filenames are `[<prefix>]<UTC timestamp>[ <index>]`, e.g.
@@ -22,6 +23,12 @@ export const FILENAME_DATETIME_FORMAT = 'YYYY.MM.DD[T]HH.mm.ss';
 
 // Prepended to the timestamp, per media type. Posts get nothing. Highlights
 // share the story prefix because they are archived stories.
+//
+// Profile and Cover both carry the DOWNLOAD time rather than the post time,
+// because neither source exposes one: an avatar has no post, and a grid tile's
+// DOM holds the thumbnail and a /p/<code>/ link but no timestamp. Their
+// prefixes are what distinguishes a meaningless timestamp from a real one in
+// the filename — without them the name is indistinguishable from a post's.
 export const TYPE_FILENAME_PREFIX: Record<MediaType, string> = {
     [MediaType.Post]: '',
     [MediaType.Story]: 'story - ',
@@ -29,6 +36,7 @@ export const TYPE_FILENAME_PREFIX: Record<MediaType, string> = {
     [MediaType.Reel]: 'reel - ',
     [MediaType.Threads]: 'thread - ',
     [MediaType.Profile]: 'profile - ',
+    [MediaType.Cover]: 'cover - ',
 };
 
 export const EXTENSION_ID = 'oejjpeobjicdpgaijialfpfcbdnanajk';
