@@ -122,9 +122,9 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
     if (!containerNode) return;
 
     try {
-        if (target.className.includes('zip-btn')) {
-            const { handleZipDownload } = await import("./utils/zip")
-            return handleZipDownload(containerNode)
+        if (target.className.includes('download-all-btn')) {
+            const { handleDownloadAll } = await import("./utils/download-all")
+            return handleDownloadAll(containerNode)
         }
 
         const data = await getUrl(containerNode);

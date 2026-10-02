@@ -1,8 +1,7 @@
 import {
     CONFIG_LIST,
     MESSAGE_FILE_DOWNLOAD,
-    MESSAGE_OPEN_URL,
-    MESSAGE_ZIP_DOWNLOAD
+    MESSAGE_OPEN_URL
 } from '../constants';
 import type { ReelsMedia } from '../types/global';
 import { findValueByKey, limitMapSize, saveHighlights, saveProfileReel, saveReels, saveStories } from './fn';
@@ -276,39 +275,6 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
                 return { ok: false, error };
             }
         }
-        case MESSAGE_ZIP_DOWNLOAD:
-            const { BlobReader, BlobWriter, TextReader, ZipWriter } = await import('@zip.js/zip.js');
-            const zipFileWriter = new BlobWriter();
-            const zipWriter = new ZipWriter(zipFileWriter);
-            for (const item of data.blobList) {
-                const { filename, content } = item;
-                if (filename === "caption.txt") {
-                    await zipWriter.add(filename, new TextReader(content), {
-                        useWebWorkers: false,
-                    });
-                    continue
-                }
-                // Normalized unconditionally, matching the Chrome path, so both
-                // browsers produce identical names.
-                let extension = content.type.split('/').pop() || 'jpg';
-                if (extension === 'jpeg') extension = 'jpg';
-                await zipWriter.add(filename + '.' + extension, new BlobReader(content), {
-                    useWebWorkers: false,
-                });
-            }
-            const zipContent = await zipWriter.close();
-            const blobUrl = URL.createObjectURL(zipContent);
-            downloadZip(blobUrl, data.zipFileName + '.zip');
-            break
     }
 });
 
-function downloadZip(url: string, filename: string) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-}

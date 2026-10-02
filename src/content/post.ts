@@ -160,9 +160,9 @@ export async function postOnClicked(target: HTMLAnchorElement) {
         const articleNode = getParentArticleNode(target);
         if (!articleNode) throw new Error('Cannot find article node');
 
-        if (target.className.includes('zip-btn')) {
-            const { handleZipDownload } = await import("./utils/zip")
-            return handleZipDownload(articleNode)
+        if (target.className.includes('download-all-btn')) {
+            const { handleDownloadAll } = await import("./utils/download-all")
+            return handleDownloadAll(articleNode)
         }
 
         const data = await postGetUrl(articleNode);

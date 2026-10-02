@@ -1,6 +1,6 @@
 export const CONFIG_LIST = [
     'setting_show_open_in_new_tab_icon',
-    'setting_show_zip_download_icon',
+    'setting_show_download_all_icon',
     'setting_enable_threads',
     'setting_enable_video_controls',
     'setting_enable_explore_video_clickthrough',
@@ -46,7 +46,6 @@ export const DOWNLOAD_FAILED_MESSAGE =
     'See the browser console for details.';
 
 export const MESSAGE_OPEN_URL = "open_url"
-export const MESSAGE_ZIP_DOWNLOAD = "zip_download"
 // Single-file downloads go through the background so chrome.downloads can put
 // them in a per-user subfolder; an <a download> cannot create directories.
 export const MESSAGE_FILE_DOWNLOAD = "file_download"

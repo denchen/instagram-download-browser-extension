@@ -86,18 +86,12 @@ export function getUserFolder(username?: string) {
 
 /**
  * Base name, no extension and no directory: `[<type prefix>]<timestamp>[ <NN>]`.
- * Used for single files and for entries inside a zip, so it must not include
- * the `@username/` folder — that's applied by the download path only.
+ * It must not include the `@username/` folder: the download path applies that,
+ * which is what lets one name serve a single download and every item of a
+ * multi-image post alike.
  */
 export const getFilenameFromUrl = async ({ datetime, index, type }: DownloadParams) => {
     const prefix = type ? TYPE_FILENAME_PREFIX[type] : '';
     const suffix = index === undefined ? '' : ` ${index.toString().padStart(2, '0')}`;
     return `${prefix}${formatTimestamp(datetime)}${suffix}`;
-};
-
-/** `@username - <timestamp>`, the name of the zip itself (no folder, no type prefix). */
-export const getZipFilename = ({ username, datetime }: Pick<DownloadParams, 'username' | 'datetime'>) => {
-    const timestamp = formatTimestamp(datetime);
-    const folder = getUserFolder(username);
-    return folder ? `${folder} - ${timestamp}` : timestamp;
 };

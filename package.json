@@ -1,6 +1,6 @@
 {
   "name": "instagram-download-browser-extension",
-  "version": "2.4.16",
+  "version": "2.5.0",
   "description": "",
   "main": "index.js",
   "type": "module",
@@ -31,7 +31,6 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
-    "@zip.js/zip.js": "^2.8.26",
     "dayjs": "^1.11.20",
     "preact": "^10.29.2"
   },

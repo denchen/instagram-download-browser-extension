@@ -10,7 +10,7 @@ function App() {
    const [threads, setThreads] = useState<boolean>(true);
    const [enableVideoControl, setEnableVideoControl] = useState<boolean>(true);
    const [enableExploreClickthrough, setEnableExploreClickthrough] = useState<boolean>(true);
-   const [enableZipDownload, setEnableZipDownload] = useState<boolean>(true);
+   const [enableDownloadAll, setEnableDownloadAll] = useState<boolean>(true);
 
    const isMobile = navigator && navigator.userAgent && /Mobi|Android|iPhone/i.test(navigator.userAgent);
 
@@ -20,7 +20,7 @@ function App() {
          setThreads(!!res.setting_enable_threads);
          setEnableVideoControl(!!res.setting_enable_video_controls);
          setEnableExploreClickthrough(res.setting_enable_explore_video_clickthrough ?? true);
-         setEnableZipDownload(!!res.setting_show_zip_download_icon);
+         setEnableDownloadAll(!!res.setting_show_download_all_icon);
       });
    }, []);
 
@@ -55,16 +55,16 @@ function App() {
                   id="setting_show_open_in_new_tab_icon"
                />
                <SettingItem
-                  value={enableZipDownload}
-                  setValue={setEnableZipDownload}
-                  label="Show `Download ZIP` Icon"
-                  id="setting_show_zip_download_icon"
+                  value={enableDownloadAll}
+                  setValue={setEnableDownloadAll}
+                  label="Show `Download All` Icon"
+                  id="setting_show_download_all_icon"
                />
 
                <h2>Download File Name Settings</h2>
                <p className="hint">
-                  Files are saved as <code>@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext</code> in UTC, and zips as{' '}
-                  <code>@username - YYYY.MM.DDTHH.mm.ss.zip</code>. This is fixed and no longer configurable.
+                  Files are saved as <code>@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext</code> in UTC. Every
+                  item of a multi-image post is saved as its own file. This is fixed and no longer configurable.
                </p>
 
                <h2>Video Settings</h2>

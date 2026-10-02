@@ -1,5 +1,5 @@
 export type IconColor = 'white' | 'black';
-export type IconClassName = 'newtab-btn' | 'download-btn' | 'zip-btn';
+export type IconClassName = 'newtab-btn' | 'download-btn' | 'download-all-btn';
 
 declare module 'react' {
    interface CSSProperties {
