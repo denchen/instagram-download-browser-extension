@@ -108,28 +108,29 @@ export const getImgOrVideoUrl = (item: Record<string, any>) => {
     }
 };
 
-// Instagram serves most post media at 1080px, so a `p1080x1080` URL is the
-// original rather than a downscale. Warning on it would make the check noise.
-const FULL_SIZE_EDGE = 1080;
-
 /**
- * Instagram encodes server-side resizes in the URL as `stp=..._s150x150` or as
- * a `/s640x640/` path segment. A URL scraped from the DOM is whatever the page
- * rendered, which for a grid thumbnail or an avatar is far smaller than the
- * original. Nothing can recover the full-size URL at that point — the API
- * lookup already failed — so just make the downgrade visible rather than
- * letting it pass as an ordinary download.
+ * Extracts the rendition size Instagram encodes in a URL — `stp=..._s150x150`,
+ * or a `/s640x640/` path segment — so it can be read off the download log
+ * without eyeballing a 400-character URL.
  *
- * Best-effort only: not every downscaled URL carries a size token, so silence
- * here is not proof you got the original. File size is the reliable tell.
+ * Reports the size, deliberately without a verdict. Calling a rendition
+ * "downscaled" requires the post's candidate ladder, and the only path that
+ * yields a sized URL is the DOM fallback — which runs precisely because the
+ * media API lookup failed, so the ladder is unavailable exactly where the
+ * judgement would be needed.
+ *
+ * An earlier version guessed with a 1080 constant and was wrong: measured
+ * originals run to 3072x4096 and 4032x3024, so 1080 is one rung on a 14-rung
+ * ladder rather than the ceiling, and the check stayed silent on the very case
+ * it existed to catch (#2). A real verdict needs the cache from #3, which would
+ * put the ladder in reach on the fallback path.
+ *
+ * Silence here means no size token was present, which is not proof of a
+ * full-resolution download. File size remains the reliable tell.
  */
-function warnIfDownscaled(url: string) {
+function describeRendition(url: string) {
     const match = url.match(/[_/][sp](\d{2,4})x(\d{2,4})/);
-    if (!match) return;
-    const width = Number(match[1]);
-    const height = Number(match[2]);
-    if (Math.max(width, height) >= FULL_SIZE_EDGE) return;
-    console.warn(`Downloading a ${width}x${height} rendition rather than the original — the media API lookup fell back to a page-rendered URL: ${url}`);
+    return match ? ` (${match[1]}x${match[2]} rendition)` : '';
 }
 
 export const getDataFromAPI = async (articleNode: HTMLElement) => {
@@ -241,8 +242,7 @@ function downloadInPage(url: string, filename: string) {
 
 export async function downloadResource(params: DownloadParams) {
     const { url, username } = params;
-    console.log(`Downloading ${url}`);
-    warnIfDownscaled(url);
+    console.log(`Downloading${describeRendition(url)}: ${url}`);
     const filename = await getFilenameFromUrl(params);
 
     // A blob: URL is a MediaSource stream owned by the page; the background

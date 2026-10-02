@@ -103,8 +103,9 @@ async function postGetUrl(articleNode: HTMLElement) {
             //
             // Returns a URL with no `res` and no index, so the caller falls back
             // to DOM-scraped metadata and the filename gets no ` NN` suffix. The
-            // src may also be a downscaled rendition, which warnIfDownscaled
-            // flags. Degraded but correct, versus failing outright.
+            // src may also be a smaller rendition; the download log reports the
+            // size when the URL declares one. Degraded but correct, versus
+            // failing outright.
             console.warn("cannot get dotsList!")
             const imgList = [...articleNode.querySelectorAll<HTMLImageElement>(`${isPostView ? ':scope>div>div:nth-child(1)' : ''} li img`)];
             if (imgList.length > 0) {
