@@ -5,7 +5,6 @@ interface StorageSettings {
     setting_show_download_all_icon?: boolean;
     setting_enable_threads?: boolean;
     setting_enable_video_controls?: boolean;
-    setting_enable_explore_video_clickthrough?: boolean;
 
     [key: string]: any;
 }
