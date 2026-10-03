@@ -32,4 +32,4 @@ async function setupSettingsUI() {
   }
 }
 
-setupSettingsUI();
+void setupSettingsUI();

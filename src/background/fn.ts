@@ -114,4 +114,5 @@ export function findValueByKey(obj: Record<string, any>, key: string): any {
       }
     }
   }
+  return undefined;
 }

@@ -41,7 +41,7 @@ const getVideoSrc = async (containerNode: HTMLElement, videoElem: HTMLVideoEleme
 
 async function getUrl() {
   const containerNode = document.querySelector<HTMLElement>("section main");
-  if (!containerNode) return;
+  if (!containerNode) return undefined;
 
   const pathnameList = window.location.pathname.split("/").filter((e) => e);
   const isPostDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === "p";
@@ -147,9 +147,9 @@ export class ReelPageHandler implements PageHandler {
 
     const final = (obj: DownloadParams) => {
       if (target.className.includes("download-btn")) {
-        downloadResource({ ...obj, type: MediaType.Reel });
+        void downloadResource({ ...obj, type: MediaType.Reel });
       } else {
-        openInNewTab(obj.url);
+        void openInNewTab(obj.url);
       }
     };
 
@@ -193,6 +193,7 @@ export class ReelPageHandler implements PageHandler {
             }
           }
         }
+        return undefined;
       }
 
       for (const script of window.document.scripts) {
@@ -241,7 +242,7 @@ export class ReelPageHandler implements PageHandler {
             posterName = name.innerText || posterName;
           }
         }
-        downloadResource({
+        await downloadResource({
           url: url,
           username: posterName,
           datetime: postTime,
@@ -249,7 +250,7 @@ export class ReelPageHandler implements PageHandler {
           type: MediaType.Reel,
         });
       } else {
-        openInNewTab(url);
+        await openInNewTab(url);
       }
     } catch (e) {
       // Not a swallow: the lines below are a genuine fallback chain. Logged

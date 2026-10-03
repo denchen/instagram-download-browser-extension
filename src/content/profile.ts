@@ -12,14 +12,14 @@ async function profileOnClicked(target: HTMLAnchorElement) {
     if (target.className.includes("download-btn")) {
       // No post time exists for an avatar, so `datetime` is left off and
       // the filename falls back to the download time.
-      downloadResource({
+      await downloadResource({
         url: url,
         username: username ?? undefined,
         id: username!,
         type: MediaType.Profile,
       });
     } else {
-      openInNewTab(url);
+      await openInNewTab(url);
     }
   }
 }

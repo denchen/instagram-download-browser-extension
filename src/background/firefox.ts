@@ -29,7 +29,7 @@ browser.runtime.onInstalled.addListener(async () => {
 });
 
 browser.runtime.onStartup.addListener(() => {
-  browser.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
+  void browser.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
 });
 
 async function listenInstagram(
@@ -186,7 +186,9 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
               idToName.set(rootView.props.user_id, key.split("/")[2]);
             }
           }
-          browser.storage.local.set({
+          // Not awaited, like the JSON branch above: `finally` releases the
+          // response to the page, so storage must not hold it up.
+          void browser.storage.local.set({
             stories_user_ids: Array.from(nameToId),
             id_to_username_map: Array.from(idToName),
           });
@@ -195,10 +197,12 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
           details.url === "https://www.threads.com/ajax/route-definition/" &&
           str.includes("searchResults")
         ) {
-          str
-            .split(/\s*for\s+\(;;\);\s*/)
-            .filter((_) => _)
-            .map((i) => listenThreads(details, JSON.parse(i)));
+          void Promise.all(
+            str
+              .split(/\s*for\s+\(;;\);\s*/)
+              .filter((_) => _)
+              .map((i) => listenThreads(details, JSON.parse(i))),
+          ).catch((e) => console.warn(`Failed to cache threads from ${details.url}.`, e));
         }
       } catch {}
     } finally {
@@ -307,4 +311,5 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
       }
     }
   }
+  return undefined;
 });

@@ -42,6 +42,7 @@ function findRootView(obj: Record<string, any>): Record<string, any> | undefined
       }
     }
   }
+  return undefined;
 }
 
 function findStories(obj: Record<string, any>): Stories.XdtApiV1FeedReelsMedia | undefined {
@@ -55,6 +56,7 @@ function findStories(obj: Record<string, any>): Stories.XdtApiV1FeedReelsMedia |
       }
     }
   }
+  return undefined;
 }
 
 export class StoriesPageHandler implements PageHandler {
@@ -114,9 +116,9 @@ export class StoriesPageHandler implements PageHandler {
       const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
       const final = (obj: any) => {
         if (target.className.includes("download-btn")) {
-          downloadResource({ ...obj, type: MediaType.Story });
+          void downloadResource({ ...obj, type: MediaType.Story });
         } else {
-          openInNewTab(obj.url);
+          void openInNewTab(obj.url);
         }
       };
       // No index: each story carries its own taken_at, so timestamps
@@ -236,7 +238,7 @@ export class StoriesPageHandler implements PageHandler {
       if (url) {
         const postTime = sectionNode.querySelector("time")?.getAttribute("datetime");
         if (target.className.includes("download-btn")) {
-          downloadResource({
+          await downloadResource({
             url: url,
             username: posterName,
             datetime: postTime,
@@ -244,7 +246,7 @@ export class StoriesPageHandler implements PageHandler {
             type: MediaType.Story,
           });
         } else {
-          openInNewTab(url);
+          await openInNewTab(url);
         }
       }
     }

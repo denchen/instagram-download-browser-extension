@@ -15,12 +15,12 @@ chrome.runtime.onInstalled.addListener(async () => {
   });
 
   if (Object.keys(updates).length > 0) {
-    chrome.storage.sync.set(updates);
+    await chrome.storage.sync.set(updates);
   }
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  chrome.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
+  void chrome.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
 });
 
 /**
@@ -47,14 +47,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log(message, sender);
   const { type, data } = message;
   if (type === MESSAGE_OPEN_URL) {
-    chrome.tabs.create({ url: data, index: sender.tab!.index + 1 });
+    void chrome.tabs.create({ url: data, index: sender.tab!.index + 1 });
     return false;
   }
   if (type === MESSAGE_FILE_DOWNLOAD) {
     // `filename` may contain a subdirectory relative to the downloads root,
     // which is the whole reason single-file saves come through here instead
     // of using an <a download> in the content script.
-    (async () => {
+    void (async () => {
       try {
         const id = await chrome.downloads.download({
           url: data.url,
@@ -104,12 +104,12 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
           } catch {}
         });
     } else {
-      addThreads(data);
+      void addThreads(data);
     }
     return false;
   }
 
-  (async () => {
+  void (async () => {
     if (type === "stories") {
       const { stories_user_ids, id_to_username_map } = await chrome.storage.local.get([
         "stories_user_ids",

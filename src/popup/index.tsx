@@ -15,7 +15,7 @@ function App() {
     navigator && navigator.userAgent && /Mobi|Android|iPhone/i.test(navigator.userAgent);
 
   useEffect(() => {
-    chrome.storage.sync.get(CONFIG_LIST).then((res) => {
+    void chrome.storage.sync.get(CONFIG_LIST).then((res) => {
       setNewTab(!!res.setting_show_open_in_new_tab_icon);
       setThreads(!!res.setting_enable_threads);
       setEnableVideoControl(!!res.setting_enable_video_controls);

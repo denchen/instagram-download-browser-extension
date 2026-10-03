@@ -1,5 +1,10 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "options": {
+    "typeAware": true,
+    "reportUnusedDisableDirectives": "error",
+    "denyWarnings": true
+  },
   "plugins": ["typescript", "unicorn", "oxc"],
   "jsPlugins": ["./lint/plugin.ts"],
   "categories": {
@@ -96,7 +101,8 @@
     "unicorn/prefer-at": "error",
     "unicorn/prefer-string-replace-all": "error",
     "oxc/no-accumulating-spread": "error",
-    "unicorn/consistent-function-scoping": "off"
+    "unicorn/consistent-function-scoping": "off",
+    "typescript/no-unsafe-type-assertion": "off"
   },
   "overrides": [
     {
