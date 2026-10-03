@@ -73,23 +73,23 @@ function handleMedia(post: any, action: 'download' | 'open') {
         } else {
             const data = text_post_app_info?.linked_inline_media;
             if (data && Array.isArray(data.video_versions)) {
-                const url = data.video_versions[0]?.url;
-                if (!url) return;
+                const inlineUrl = data.video_versions[0]?.url;
+                if (!inlineUrl) return;
                 final({
-                    url: url,
+                    url: inlineUrl,
                     username: post.user.username,
                     datetime: fromUnixSeconds(post.taken_at),
-                    id: getMediaName(url),
+                    id: getMediaName(inlineUrl),
                 });
             } else if (data && Array.isArray(data.carousel_media)) {
                 data.carousel_media.forEach((item: any) => {
-                    const url = item.video_versions?.[0]?.url || item.image_versions2?.candidates?.[0]?.url;
-                    if (!url) return;
+                    const itemUrl = item.video_versions?.[0]?.url || item.image_versions2?.candidates?.[0]?.url;
+                    if (!itemUrl) return;
                     final({
-                        url: url,
+                        url: itemUrl,
                         username: post.user.username,
                         datetime: fromUnixSeconds(post.taken_at),
-                        id: getMediaName(url),
+                        id: getMediaName(itemUrl),
                     });
                 });
             }
@@ -101,8 +101,8 @@ export async function handleThreadsPost(container: HTMLDivElement, action: 'down
     const postCode = [...container.querySelectorAll('a')].find((i) => /\w+\/post\/\w+/.test(i.href))?.href
                                                          .split('/post/')[1];
     const { threads } = await chrome.storage.local.get(['threads']);
-    const data = new Map(threads || []);
-    const thread = data.get(postCode) as Record<string, any> | undefined;
+    const threadMap = new Map(threads || []);
+    const thread = threadMap.get(postCode) as Record<string, any> | undefined;
 
     if (thread) {
         handleMedia(thread.post || thread, action);
@@ -111,13 +111,13 @@ export async function handleThreadsPost(container: HTMLDivElement, action: 'down
         for (const script of window.document.scripts) {
             try {
                 const innerHTML = script.innerHTML;
-                const data = JSON.parse(innerHTML);
+                const json = JSON.parse(innerHTML);
                 if (innerHTML.includes('thread_items')) {
-                    const arr = findFeedDataEdges(data);
+                    const arr = findFeedDataEdges(json);
 
                     if (Array.isArray(arr)) {
-                        const data = arr
-                            .map(
+                        const match = arr
+                            .flatMap(
                                 (i) =>
                                     i.node?.text_post_app_thread?.thread_items ||
                                     i.node?.thread_items ||
@@ -125,11 +125,10 @@ export async function handleThreadsPost(container: HTMLDivElement, action: 'down
                                     i.text_post_app_thread?.thread_items ||
                                     i.thread_items
                             )
-                            .flat()
                             .find((i: Record<string, any> | undefined) => i?.post.code === postCode);
 
-                        if (data) {
-                            const { post } = data;
+                        if (match) {
+                            const { post } = match;
                             handleMedia(post, action);
                             return;
                         }

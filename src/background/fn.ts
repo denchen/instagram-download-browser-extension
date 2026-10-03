@@ -26,7 +26,7 @@ export async function saveHighlights(jsonData: Record<string, any>) {
         //? The presentation stories in home page top url is /stories/{username} now
         //? before was /stories/highlights/{pk}
         //? so we need to save the data to stories_reels_media
-        saveStoriesToLocal(data);
+        await saveStoriesToLocal(data);
     }
 }
 
@@ -63,7 +63,7 @@ export async function saveProfileReel(jsonData: Record<string, any>) {
 export async function saveStories(jsonData: Record<string, any>) {
     if (Array.isArray(jsonData.data?.xdt_api__v1__feed__reels_media?.reels_media)) {
         const data = (jsonData as Stories.Root).data.xdt_api__v1__feed__reels_media.reels_media;
-        saveStoriesToLocal(data);
+        await saveStoriesToLocal(data);
     }
 }
 

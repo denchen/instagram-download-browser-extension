@@ -24,7 +24,7 @@ export function getMediaName(url: string) {
     try {
         const urlObj = new URL(url);
         const pathnameArr = urlObj.pathname.split('/');
-        const filename = pathnameArr[pathnameArr.length - 1];
+        const filename = pathnameArr.at(-1) ?? '';
         const filenameArr = filename.split('.');
         return filenameArr[0];
     } catch {
@@ -66,7 +66,7 @@ export function getExtensionFromUrl(url: string, fallback = 'jpg') {
 function formatTimestamp(datetime?: DownloadParams['datetime']) {
     const parsed = datetime === undefined || datetime === null ? null : new Date(datetime);
     const date = parsed && !Number.isNaN(parsed.getTime()) ? parsed : new Date();
-    return date.toISOString().slice(0, 19).replace(/[-:]/g, '.');
+    return date.toISOString().slice(0, 19).replaceAll(/[-:]/g, '.');
 }
 
 export function fromUnixSeconds(seconds: number) {
@@ -90,7 +90,7 @@ export function getUserFolder(username?: string) {
     // Instagram usernames are [A-Za-z0-9._] so this is belt-and-braces, but a
     // stray separator would let the name escape the intended directory, and a
     // pure-dot name would be rejected by chrome.downloads outright.
-    const cleaned = (username ?? '').trim().replace(/[/\\]/g, '');
+    const cleaned = (username ?? '').trim().replaceAll(/[/\\]/g, '');
     if (!cleaned || /^\.+$/.test(cleaned)) return '';
     return `@${cleaned}`;
 }
@@ -101,7 +101,7 @@ export function getUserFolder(username?: string) {
  * which is what lets one name serve a single download and every item of a
  * multi-image post alike.
  */
-export const getFilenameFromUrl = async ({ datetime, index, type }: DownloadParams) => {
+export const getFilenameFromUrl = ({ datetime, index, type }: DownloadParams) => {
     const prefix = type ? TYPE_FILENAME_PREFIX[type] : '';
     const suffix = index === undefined ? '' : ` ${index.toString().padStart(2, '0')}`;
     return `${prefix}${formatTimestamp(datetime)}${suffix}`;

@@ -37,7 +37,7 @@ export class FeedPageHandler implements PageHandler {
         }
     }
 
-    async onCustomButtonClick(target: HTMLAnchorElement) {
+    onCustomButtonClick(target: HTMLAnchorElement) {
         return postOnClicked(target);
     }
 

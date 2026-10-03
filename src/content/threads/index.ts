@@ -89,6 +89,10 @@ export class ThreadsPageHandler implements PageHandler {
         }
     }
 
+    // handleThreadsButton is synchronous. `async` is what makes this return the
+    // promise the dispatcher's `.catch(console.error)` needs, and routes a throw
+    // into that catch instead of out of the click listener.
+    // oxlint-disable-next-line require-await
     async onCustomButtonClick(target: HTMLAnchorElement) {
         return handleThreadsButton(target);
     }

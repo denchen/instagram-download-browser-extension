@@ -11,8 +11,8 @@ import { storageCache } from "./utils/storage";
 
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
     const poster = videoElem.getAttribute('poster');
-    const timeNodes = containerNode.querySelectorAll('time');
-    const posterUrl = (timeNodes[timeNodes.length - 1].parentNode!.parentNode as any).href;
+    const timeNodes = [...containerNode.querySelectorAll('time')];
+    const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
     const posterPattern = /\/([^/?]*)\?/;
     const posterMatch = poster?.match(posterPattern);
     const postFileName = posterMatch?.[1];
@@ -21,7 +21,7 @@ async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoEle
     const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, 's');
     const match = content.match(pattern);
     let videoUrl = JSON.parse(match?.[1] ?? '');
-    videoUrl = videoUrl.replace(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
+    videoUrl = videoUrl.replaceAll(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
     videoElem.setAttribute('videoURL', videoUrl);
     return videoUrl;
 }
@@ -93,10 +93,9 @@ async function getUrl() {
                 ),
             ];
             const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
-            const positionsMap = listElements.reduce<Record<string, HTMLLIElement>>((result, element) => {
-                const position = Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth);
-                return { ...result, [position]: element };
-            }, {});
+            const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
+                listElements.map((element) => [Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth), element]),
+            );
 
             const node = positionsMap[mediaIndex];
             const videoElem = node.querySelector('video');
@@ -149,13 +148,13 @@ export class ReelPageHandler implements PageHandler {
             const media = new Map(profile_reels_edges_data || []).get(code) as ProfileReel.Media | undefined;
             if (media) {
                 const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
-                const times = target.parentElement?.parentElement?.parentElement?.querySelectorAll('time');
-                const time = times ? times[times.length - 1]?.getAttribute('datetime') : undefined;
+                const times = [...target.parentElement?.parentElement?.parentElement?.querySelectorAll('time') ?? []];
+                const time = times.at(-1)?.getAttribute('datetime');
                 final({
                     url: url,
                     username:
                         (new Map(id_to_username_map || []).get(media.user.id) as string) ||
-                        document.querySelector('a')?.getAttribute('href')?.replace(/\//g, ''),
+                        document.querySelector('a')?.getAttribute('href')?.replaceAll('/', ''),
                     datetime: time,
                     id: getMediaName(url),
                 });
@@ -164,7 +163,7 @@ export class ReelPageHandler implements PageHandler {
             return false;
         };
 
-        async function getDataFromScripts() {
+        function getDataFromScripts() {
             function findReel(obj: Record<string, any>): any {
                 for (const key in obj) {
                     if (key === 'xdt_api__v1__media__shortcode__web_info') {
@@ -178,7 +177,7 @@ export class ReelPageHandler implements PageHandler {
                 }
             }
 
-            for (const script of [...window.document.scripts]) {
+            for (const script of window.document.scripts) {
                 try {
                     const innerHTML = script.innerHTML;
                     const data = JSON.parse(innerHTML);

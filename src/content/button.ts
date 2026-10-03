@@ -34,12 +34,12 @@ function createCustomBtn(svg: string, iconColor: IconColor, className: IconClass
     newBtn.innerHTML = svg;
     newBtn.className = CLASS_CUSTOM_BUTTON + ' ' + className;
     newBtn.setAttribute('style', `cursor: pointer;padding:8px;z-index: 0;display:inline-flex;color:${iconColor}`);
-    newBtn.onmouseenter = () => {
+    newBtn.addEventListener('mouseenter', () => {
         newBtn.style.setProperty('filter', 'drop-shadow(0px 0px 10px deepskyblue)');
-    };
-    newBtn.onmouseleave = () => {
+    });
+    newBtn.addEventListener('mouseleave', () => {
         newBtn.style.removeProperty('filter');
-    };
+    });
     switch (className) {
         case 'newtab-btn':
             newBtn.setAttribute('title', 'Open In New Tab');
@@ -100,12 +100,12 @@ export function addVideoDownloadCoverBtn(node: HTMLDivElement) {
     newBtn.setAttribute('style', 'cursor: pointer;position:absolute;left:4px;top:4px;color:white');
     newBtn.setAttribute('title', 'Download Video Cover');
     newBtn.dataset.videoCoverDownload = "true";
-    newBtn.onmouseenter = () => {
+    newBtn.addEventListener('mouseenter', () => {
         newBtn.style.setProperty('scale', '1.1');
-    };
-    newBtn.onmouseleave = () => {
+    });
+    newBtn.addEventListener('mouseleave', () => {
         newBtn.style.removeProperty('scale');
-    };
+    });
     node.appendChild(newBtn);
 }
 

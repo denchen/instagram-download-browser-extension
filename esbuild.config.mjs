@@ -45,7 +45,7 @@ const ctx = await esbuild.context({
             build.onEnd(async () => {
                await cp('public', `dist/${platform}`, { recursive: true });
                const contents = await readFile(`./src/manifest.${platform}.json`, { encoding: 'utf8' });
-               const replacedContents = contents.replace(/__MSG_extVersion__/g, pkg.version);
+               const replacedContents = contents.replaceAll('__MSG_extVersion__', pkg.version);
                await writeFile(`dist/${platform}/manifest.json`, replacedContents, { encoding: 'utf8' });
                console.log(`[${Date()}] manifest copied and replaced successfully`);
             });

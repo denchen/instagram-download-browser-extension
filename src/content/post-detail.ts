@@ -5,8 +5,8 @@ import { DOWNLOAD_FAILED_MESSAGE, MediaType } from "../constants";
 
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
     const poster = videoElem.getAttribute('poster');
-    const timeNodes = containerNode.querySelectorAll('time');
-    const posterUrl = (timeNodes[timeNodes.length - 1].parentNode!.parentNode as any).href;
+    const timeNodes = [...containerNode.querySelectorAll('time')];
+    const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
     const posterPattern = /\/([^/?]*)\?/;
     const posterMatch = poster?.match(posterPattern);
     const postFileName = posterMatch?.[1];
@@ -15,7 +15,7 @@ async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoEle
     const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, 's');
     const match = content.match(pattern);
     let videoUrl = JSON.parse(match?.[1] ?? '');
-    videoUrl = videoUrl.replace(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
+    videoUrl = videoUrl.replaceAll(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
     videoElem.setAttribute('videoURL', videoUrl);
     return videoUrl;
 }
@@ -96,10 +96,9 @@ async function getUrl(containerNode: HTMLElement) {
                 ),
             ];
             const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
-            const positionsMap = listElements.reduce<Record<string, HTMLLIElement>>((result, element) => {
-                const position = Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth);
-                return { ...result, [position]: element };
-            }, {});
+            const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
+                listElements.map((element) => [Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth), element]),
+            );
 
             const node = positionsMap[mediaIndex];
             const videoElem = node.querySelector('video');

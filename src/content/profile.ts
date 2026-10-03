@@ -62,7 +62,7 @@ export class ProfilePageHandler implements PageHandler {
         });
     }
 
-    async onCustomButtonClick(target: HTMLAnchorElement) {
+    onCustomButtonClick(target: HTMLAnchorElement) {
         if (document.querySelector('section>main>div>header>section:nth-child(2)')?.contains(target)) {
             return profileOnClicked(target);
         }
