@@ -1,13 +1,6 @@
 import { CONFIG_LIST, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../constants";
 import type { ReelsMedia } from "../types/global";
-import {
-  findValueByKey,
-  limitMapSize,
-  saveHighlights,
-  saveProfileReel,
-  saveReels,
-  saveStories,
-} from "./fn";
+import { findValueByKey, limitMapSize, saveGraphqlQuery, saveStories } from "./fn";
 
 browser.runtime.onInstalled.addListener(async () => {
   // 1. Initialize default settings. Every remaining setting is a boolean that
@@ -45,13 +38,10 @@ async function listenInstagram(
 ) {
   switch (details.url) {
     case "https://www.instagram.com/api/graphql":
-      saveStories(jsonData);
+      await saveStories(jsonData);
       break;
     case "https://www.instagram.com/graphql/query":
-      saveHighlights(jsonData);
-      saveReels(jsonData);
-      saveStories(jsonData);
-      saveProfileReel(jsonData);
+      await saveGraphqlQuery(jsonData);
       break;
     default:
       if (details.url.startsWith("https://www.instagram.com/api/v1/feed/reels_media/?reel_ids=")) {
@@ -162,8 +152,18 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
     // !use try catch to avoid error that may cause page not working
     try {
       const jsonData = JSON.parse(str);
-      listenInstagram(details, jsonData);
-      listenThreads(details, jsonData);
+      // Not awaited: the response reaches the page only when `finally` writes
+      // it, so waiting on storage here would stall Instagram. Failures are
+      // still logged instead of surfacing as unhandled rejections.
+      void Promise.all([
+        listenInstagram(details, jsonData),
+        listenThreads(details, jsonData),
+      ]).catch((e) =>
+        console.warn(
+          `Failed to process an intercepted ${details.url} response; its data was not cached.`,
+          e,
+        ),
+      );
     } catch {
       try {
         // record opened stories by user_id and username

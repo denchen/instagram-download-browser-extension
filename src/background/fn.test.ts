@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { findValueByKey, limitMapSize } from "./fn";
+import { findValueByKey, limitMapSize, saveGraphqlQuery } from "./fn";
 
 describe("limitMapSize", () => {
   it("evicts the oldest entries first", () => {
@@ -74,5 +74,47 @@ describe("findValueByKey", () => {
 
   it("returns undefined when the key is absent", () => {
     expect(findValueByKey({ a: { b: [1, 2] } }, "target")).toBeUndefined();
+  });
+});
+
+describe("saveGraphqlQuery", () => {
+  let store: Record<string, unknown>;
+
+  beforeEach(() => {
+    store = {};
+    // Like the real API, every call yields before touching the data, which is
+    // what lets concurrent read-modify-write cycles interleave.
+    const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+    vi.stubGlobal("chrome", {
+      storage: {
+        local: {
+          get: async (keys: string[]) => {
+            await tick();
+            return Object.fromEntries(keys.map((key) => [key, store[key]]));
+          },
+          set: async (items: Record<string, unknown>) => {
+            await tick();
+            Object.assign(store, items);
+          },
+        },
+      },
+    });
+  });
+
+  it("keeps both highlights and stories when one response carries both", async () => {
+    await saveGraphqlQuery({
+      data: {
+        xdt_api__v1__feed__reels_media__connection: { edges: [{ node: { id: "highlight:1" } }] },
+        xdt_api__v1__feed__reels_media: { reels_media: [{ id: "story:1" }] },
+      },
+    });
+    const ids = (store.stories_reels_media as [string, unknown][]).map(([id]) => id);
+    expect(ids).toStrictEqual(["highlight:1", "story:1"]);
+    expect(store.highlights_data).toStrictEqual([["highlight:1", { id: "highlight:1" }]]);
+  });
+
+  it("writes nothing for a response with no media it recognises", async () => {
+    await saveGraphqlQuery({ data: { unrelated: true } });
+    expect(store).toStrictEqual({});
   });
 });

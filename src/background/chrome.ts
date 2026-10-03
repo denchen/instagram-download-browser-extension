@@ -1,5 +1,5 @@
 import type { ReelsMedia } from "../types/global";
-import { findValueByKey, saveHighlights, saveProfileReel, saveReels, saveStories } from "./fn";
+import { findValueByKey, saveGraphqlQuery, saveStories } from "./fn";
 import { CONFIG_LIST, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../constants";
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -128,14 +128,13 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
         const jsonData = JSON.parse(data);
 
         switch (api) {
+          // Awaited so a failed save lands in the catch below instead of
+          // escaping it as an unhandled rejection.
           case "https://www.instagram.com/api/graphql":
-            saveStories(jsonData);
+            await saveStories(jsonData);
             break;
           case "https://www.instagram.com/graphql/query":
-            saveHighlights(jsonData);
-            saveReels(jsonData);
-            saveStories(jsonData);
-            saveProfileReel(jsonData);
+            await saveGraphqlQuery(jsonData);
             break;
           // presentation stories in home page top
           case "/api/v1/feed/reels_media/?reel_ids=":
@@ -144,14 +143,14 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
               (i: ReelsMedia.ReelsMedum) =>
                 !(jsonData as ReelsMedia.Root).reels_media.find((j) => j.id === i.id),
             );
-            chrome.storage.local.set({
+            await chrome.storage.local.set({
               reels: Object.assign({}, reels, data.reels),
               reels_media: [...newArr, ...jsonData.reels_media],
             });
             break;
         }
       } catch (e) {
-        // This guards JSON.parse and every saver in the switch above, so
+        // This guards JSON.parse and every (awaited) saver above, so
         // a throw means an intercepted response silently never reached
         // the cache. The symptom shows up much later as a DOM fallback
         // rather than as an error, which is why it is worth a line here.
