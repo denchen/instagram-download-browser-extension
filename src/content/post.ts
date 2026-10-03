@@ -11,8 +11,8 @@ import { postDetailOnClicked } from './post-detail';
 
 async function fetchVideoURL(articleNode: HTMLElement, videoElem: HTMLVideoElement) {
     const poster = videoElem.getAttribute('poster');
-    const timeNodes = articleNode.querySelectorAll('time');
-    const posterUrl = (timeNodes[timeNodes.length - 1].parentNode!.parentNode as any).href;
+    const timeNodes = [...articleNode.querySelectorAll('time')];
+    const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
     const posterPattern = /\/([^/?]*)\?/;
     const posterMatch = poster?.match(posterPattern);
     const postFileName = posterMatch?.[1];
@@ -21,7 +21,7 @@ async function fetchVideoURL(articleNode: HTMLElement, videoElem: HTMLVideoEleme
     const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, 's');
     const match = content.match(pattern);
     let videoUrl = JSON.parse(match?.[1] ?? '');
-    videoUrl = videoUrl.replace(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
+    videoUrl = videoUrl.replaceAll(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
     videoElem.setAttribute('videoURL', videoUrl);
     return videoUrl;
 }
@@ -135,10 +135,9 @@ async function postGetUrl(articleNode: HTMLElement) {
                 ),
             ] as HTMLLIElement[];
             const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
-            const positionsMap = listElements.reduce<Record<string, HTMLLIElement>>((result, element) => {
-                const position = Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth);
-                return { ...result, [position]: element };
-            }, {});
+            const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
+                listElements.map((element) => [Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth), element]),
+            );
 
             const node = positionsMap[mediaIndex];
             const videoElem = node.querySelector('video');
@@ -176,7 +175,7 @@ export async function postOnClicked(target: HTMLAnchorElement) {
                 postTime = fromUnixSeconds(res.taken_at);
             } else {
                 postTime = articleNode.querySelector('time')?.getAttribute('datetime');
-                posterName = articleNode.querySelector('a')?.getAttribute('href')?.replace(/\//g, '');
+                posterName = articleNode.querySelector('a')?.getAttribute('href')?.replaceAll('/', '');
                 const tagNode = document.querySelector(
                     'path[d="M21.334 23H2.666a1 1 0 0 1-1-1v-1.354a6.279 6.279 0 0 1 6.272-6.272h8.124a6.279 6.279 0 0 1 6.271 6.271V22a1 1 0 0 1-1 1ZM12 13.269a6 6 0 1 1 6-6 6.007 6.007 0 0 1-6 6Z"]'
                 );
@@ -245,11 +244,11 @@ export class PostPageHandler implements PageHandler {
             document.querySelector('main[role="main"] section') ||
             likeBtn?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode;
         if (btnsContainer instanceof HTMLElement && btnsContainer.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
-            addCustomBtn(window.getComputedStyle(btnsContainer).display == "grid" ? btnsContainer.firstElementChild : btnsContainer, iconColor);
+            addCustomBtn(window.getComputedStyle(btnsContainer).display === "grid" ? btnsContainer.firstElementChild : btnsContainer, iconColor);
         }
     }
 
-    async onCustomButtonClick(target: HTMLAnchorElement) {
+    onCustomButtonClick(target: HTMLAnchorElement) {
         if (document.querySelector('div[role="dialog"]')) {
             return postOnClicked(target);
         } else {

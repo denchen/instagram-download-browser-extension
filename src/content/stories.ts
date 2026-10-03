@@ -74,7 +74,7 @@ export class StoriesPageHandler implements PageHandler {
             node.style.pointerEvents = 'none';
         }
         let wrapperDiv = document.querySelector('body>div:not([hidden])>div>div>div:not([hidden])>div:not([hidden])>div>div section')
-        if (checkType() == "android") {
+        if (checkType() === "android") {
             wrapperDiv = document.querySelector('body>div:not([hidden])>div>div>div:not([hidden])>div:not([hidden])>div>div>div>div')
         }
         if (!wrapperDiv) {
@@ -188,7 +188,7 @@ export class StoriesPageHandler implements PageHandler {
         } else {
             const mediaId = pathnameArr.at(-1)!;
 
-            for (const item of [...stories_reels_media_data.values()]) {
+            for (const item of stories_reels_media_data.values()) {
                 for (let i = 0; i < item.items.length; i++) {
                     if (item.items[i].pk === mediaId) {
                         const result = handleMedia(item, i);

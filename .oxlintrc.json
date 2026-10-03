@@ -1,13 +1,16 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": [
-    "typescript"
+    "typescript",
+    "unicorn",
+    "oxc"
   ],
   "jsPlugins": [
     "./lint/plugin.ts"
   ],
   "categories": {
-    "correctness": "off"
+    "correctness": "error",
+    "suspicious": "error"
   },
   "env": {
     "builtin": true,
@@ -93,7 +96,15 @@
     "typescript/prefer-as-const": "error",
     "typescript/prefer-namespace-keyword": "error",
     "typescript/triple-slash-reference": "error",
-    "local/no-aria-label-selector": "error"
+    "local/no-aria-label-selector": "error",
+    "eqeqeq": "error",
+    "no-shadow": "error",
+    "require-await": "error",
+    "unicorn/prefer-array-flat-map": "error",
+    "unicorn/prefer-at": "error",
+    "unicorn/prefer-string-replace-all": "error",
+    "oxc/no-accumulating-spread": "error",
+    "unicorn/consistent-function-scoping": "off"
   },
   "overrides": [
     {

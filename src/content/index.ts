@@ -53,7 +53,7 @@ function handleGlobalClick(e: MouseEvent) {
         const btn = e.target.closest(`.${CLASS_CUSTOM_BUTTON}`);
         if (btn && btn instanceof HTMLAnchorElement) {
             e.preventDefault();
-            if (btn.getAttribute("data-video-cover-download") == "true") {
+            if (btn.getAttribute("data-video-cover-download") === "true") {
                 handleVideoCoverDownloadBtn(btn.parentElement!);
                 return;
             }

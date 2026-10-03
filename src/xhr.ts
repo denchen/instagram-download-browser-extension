@@ -56,29 +56,28 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
                      chrome.runtime.sendMessage(EXTENSION_ID, {
                         type: 'threads',
                         data: data.data.feedData.edges
-                           .map(
+                           .flatMap(
                               (i: any) =>
                                  i.node?.text_post_app_thread?.thread_items || i.node?.thread_items || i.text_post_app_thread?.thread_items
-                           )
-                           .flat(),
+                           ),
                      });
                   }
                   if (Array.isArray(data.data?.mediaData?.edges)) {
                      chrome.runtime.sendMessage(EXTENSION_ID, {
                         type: 'threads',
-                        data: data.data.mediaData.edges.map((i: any) => i.node.thread_items).flat(),
+                        data: data.data.mediaData.edges.flatMap((i: any) => i.node.thread_items),
                      });
                   }
                   if (Array.isArray(data.data?.data?.edges)) {
                      chrome.runtime.sendMessage(EXTENSION_ID, {
                         type: 'threads',
-                        data: data.data.data.edges.map((i: any) => i.node.thread_items).flat(),
+                        data: data.data.data.edges.flatMap((i: any) => i.node.thread_items),
                      });
                   }
                   if (Array.isArray(data.data?.results?.edges)) {
                      chrome.runtime.sendMessage(EXTENSION_ID, {
                         type: 'threads',
-                        data: data.data.results.edges.map((i: any) => i.node.thread_items).flat(),
+                        data: data.data.results.edges.flatMap((i: any) => i.node.thread_items),
                      });
                   }
                   if (typeof data.data?.replyPost === 'object') {
@@ -90,7 +89,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
                   if (Array.isArray(data.data?.searchResults?.edges)) {
                      chrome.runtime.sendMessage(EXTENSION_ID, {
                         type: 'threads',
-                        data: data.data.searchResults.edges.map((i: any) => i.node.thread.thread_items).flat(),
+                        data: data.data.searchResults.edges.flatMap((i: any) => i.node.thread.thread_items),
                      });
                   }
                } catch (error) {

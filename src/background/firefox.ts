@@ -81,22 +81,21 @@ async function listenThreads(details: browser.webRequest._OnBeforeRequestDetails
     if (details.url === 'https://www.threads.com/graphql/query') {
         if (Array.isArray(jsonData.data?.feedData?.edges)) {
             const data = jsonData.data.feedData.edges
-                .map((i: any) => i.node?.text_post_app_thread?.thread_items || i.node?.thread_items || i.text_post_app_thread?.thread_items)
-                .flat();
+                .flatMap((i: any) => i.node?.text_post_app_thread?.thread_items || i.node?.thread_items || i.text_post_app_thread?.thread_items);
             await addThreads(data);
         } else if (Array.isArray(jsonData.data?.mediaData?.edges)) {
-            const data = jsonData.data.mediaData.edges.map((i: any) => i.node.thread_items).flat();
+            const data = jsonData.data.mediaData.edges.flatMap((i: any) => i.node.thread_items);
             await addThreads(data);
         } else if (Array.isArray(jsonData.data?.data?.edges)) {
-            const data = jsonData.data.data.edges.map((i: any) => i.node.thread_items).flat();
+            const data = jsonData.data.data.edges.flatMap((i: any) => i.node.thread_items);
             await addThreads(data);
         } else if (typeof jsonData.data?.replyPost === 'object') {
             await addThreads([jsonData.data.replyPost]);
         } else if (Array.isArray(jsonData.data?.searchResults?.edges)) {
-            const data = jsonData.data.searchResults.edges.map((i: any) => i.node.thread.thread_items).flat();
+            const data = jsonData.data.searchResults.edges.flatMap((i: any) => i.node.thread.thread_items);
             await addThreads(data);
         } else if (Array.isArray(jsonData.data?.results?.edges)) {
-            const data = jsonData.data.results.edges.map((i: any) => i.node.thread_items).flat();
+            const data = jsonData.data.results.edges.flatMap((i: any) => i.node.thread_items);
             await addThreads(data);
         } else if (typeof jsonData.data?.data === 'object') {
             const data = jsonData.data.data;
@@ -107,7 +106,7 @@ async function listenThreads(details: browser.webRequest._OnBeforeRequestDetails
     if (details.url === 'https://www.threads.com/ajax/route-definition/') {
         const result = findValueByKey(jsonData, 'searchResults');
         if (result && Array.isArray(result.edges)) {
-            await addThreads(result.edges.map((i: any) => i.node.thread.thread_items).flat());
+            await addThreads(result.edges.flatMap((i: any) => i.node.thread.thread_items));
         }
     }
 }
@@ -126,9 +125,11 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
         data = [];
         try {
             filter.close();
-        } catch (e) {
+        } catch {
         }
     };
+    // StreamFilter's typings only declare the on* handlers, like ondata/onstop around it.
+    // oxlint-disable-next-line unicorn/prefer-add-event-listener
     filter.onerror = cleanUp;
 
     filter.onstop = async () => {
@@ -185,11 +186,11 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
         } finally {
             try {
                 filter.write(encoder.encode(str));
-            } catch (e) {
+            } catch {
             }
             try {
                 filter.close();
-            } catch (e) {
+            } catch {
             }
         }
     };

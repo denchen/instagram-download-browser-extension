@@ -10,7 +10,7 @@ export async function openInNewTab(url: string) {
     }
 }
 
-async function forceDownload(blob: string, filename: string, extension: string) {
+function forceDownload(blob: string, filename: string, extension: string) {
     extension = extension.replace('jpeg', 'jpg');
     const a = document.createElement('a');
     a.href = blob;
@@ -283,7 +283,7 @@ function downloadInPage(url: string, filename: string) {
 export async function downloadResource(params: DownloadParams) {
     const { url, username } = params;
     console.log(`Downloading${describeRendition(url)}: ${url}`);
-    const filename = await getFilenameFromUrl(params);
+    const filename = getFilenameFromUrl(params);
 
     // A blob: URL is a MediaSource stream owned by the page; the background
     // has no way to fetch it, so these keep the anchor path and land flat in

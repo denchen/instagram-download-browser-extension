@@ -99,7 +99,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
                     try {
                         const result = findValueByKey(JSON.parse(i), 'searchResults');
                         if (result && Array.isArray(result.edges)) {
-                            await addThreads(result.edges.map((i: any) => i.node.thread.thread_items).flat());
+                            await addThreads(result.edges.flatMap((edge: any) => edge.node.thread.thread_items));
                         }
                     } catch {
                     }
