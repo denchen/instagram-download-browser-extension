@@ -1,9 +1,8 @@
 # Instagram Download Browser Extension
 
 A personal fork of [TheKonka/instagram-download-browser-extension](https://github.com/TheKonka/instagram-download-browser-extension),
-maintained for one person's use and **not published to either extension store**. It deliberately
-changes behaviour the original intends to keep, so it is installed from source rather than
-installed alongside the published add-on.
+**not published to either extension store**. It deliberately changes behaviour the original intends
+to keep, so it is installed from source rather than installed alongside the published add-on.
 
 The most visible difference is file naming. Downloads are saved as
 `@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext` in UTC — a per-poster folder, the post's own
