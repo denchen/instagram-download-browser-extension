@@ -53,6 +53,11 @@ This project uses [pnpm](https://pnpm.io/) and [esbuild](https://esbuild.github.
    pnpm run fmt
    ```
 
+5. Run the unit tests ([Vitest](https://vitest.dev/)). CI runs all of the above on every pull request.
+   ```bash
+   pnpm test
+   ```
+
 ### Thanks
 
 [Instagram_Download_Button](https://github.com/y252328/Instagram_Download_Button)
