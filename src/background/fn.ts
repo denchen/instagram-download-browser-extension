@@ -86,6 +86,21 @@ async function saveStoriesToLocal(data: Stories.ReelsMedum[]) {
   await chrome.storage.local.set({ stories_reels_media: [...newMap] });
 }
 
+/**
+ * Caches every kind of media a GraphQL query response can carry. Each saver
+ * checks for its own payload and returns early otherwise.
+ *
+ * Sequential on purpose: saveHighlights and saveStories both read-modify-write
+ * `stories_reels_media`, so running them concurrently lets one overwrite the
+ * other's update.
+ */
+export async function saveGraphqlQuery(jsonData: Record<string, any>) {
+  await saveHighlights(jsonData);
+  await saveReels(jsonData);
+  await saveStories(jsonData);
+  await saveProfileReel(jsonData);
+}
+
 export function findValueByKey(obj: Record<string, any>, key: string): any {
   for (const property in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, property)) {
