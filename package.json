@@ -11,7 +11,8 @@
     "sign:ff": "pnpm run build:ff && web-ext sign --channel=unlisted --source-dir=dist/firefox --artifacts-dir=web-ext-artifacts",
     "android": "node ./node_modules/web-ext/bin/web-ext.js run -t firefox-android --android-device=5e843fe4 --firefox-apk org.mozilla.fenix --source-dir ./dist/firefox",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "npx eslint --fix"
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix"
   },
   "keywords": [
     "Instagram",
@@ -33,16 +34,14 @@
     "preact": "^10.29.2"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
+    "@oxlint/plugins": "^1.86.0",
     "@types/firefox-webext-browser": "^143.0.0",
     "chrome-types": "^0.1.429",
     "esbuild": "^0.28.0",
     "esbuild-sass-plugin": "^3.7.0",
-    "eslint": "^10.4.0",
-    "globals": "^17.6.0",
+    "oxlint": "^1.86.0",
     "sass-embedded": "^1.100.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.4",
     "web-ext": "^10.2.0"
   },
   "engines": {
