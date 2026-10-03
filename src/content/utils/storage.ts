@@ -1,6 +1,6 @@
 import { CONFIG_LIST } from '../../constants';
 
-export interface StorageSettings {
+interface StorageSettings {
     setting_show_open_in_new_tab_icon?: boolean;
     setting_show_download_all_icon?: boolean;
     setting_enable_threads?: boolean;

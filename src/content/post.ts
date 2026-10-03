@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab, } from './utils/fn';
-import { getMediaName } from './utils/filename';
+import { fromUnixSeconds, getMediaName } from './utils/filename';
 import { getCurrentStepFromDotsList, getParentArticleNode } from "./utils/dom";
 import { CLASS_CUSTOM_BUTTON, DOWNLOAD_FAILED_MESSAGE, likeIconSelector, MediaType, tagIconSelector } from "../constants";
 import { storageCache } from './utils/storage';
@@ -174,7 +173,7 @@ export async function postOnClicked(target: HTMLAnchorElement) {
             let postTime, posterName;
             if (res) {
                 posterName = res.owner;
-                postTime = dayjs.unix(res.taken_at);
+                postTime = fromUnixSeconds(res.taken_at);
             } else {
                 postTime = articleNode.querySelector('time')?.getAttribute('datetime');
                 posterName = articleNode.querySelector('a')?.getAttribute('href')?.replace(/\//g, '');
@@ -191,7 +190,7 @@ export async function postOnClicked(target: HTMLAnchorElement) {
             downloadResource({
                 url: url,
                 username: posterName,
-                datetime: dayjs(postTime),
+                datetime: postTime,
                 id: res?.origin_data?.id || getMediaName(url),
                 // Always indexed: every item in a carousel shares the post's
                 // timestamp, so the ordinal is what keeps their names distinct.

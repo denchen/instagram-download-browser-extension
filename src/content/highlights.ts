@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
 import { checkType, downloadResource, openInNewTab } from './utils/fn';
-import { DownloadParams, getMediaName } from './utils/filename';
+import { fromUnixSeconds, DownloadParams, getMediaName } from './utils/filename';
 import type { Highlight } from '../types/highlights';
 import type { ReelsMedia } from '../types/global';
 import { MediaType } from "../constants";
@@ -76,7 +75,7 @@ export async function highlightsOnClicked(target: HTMLAnchorElement, containerNo
         // timestamps already differ.
         final(url, {
             username: data.user.username,
-            datetime: dayjs.unix(media.taken_at),
+            datetime: fromUnixSeconds(media.taken_at),
             id: data.id,
         });
     };

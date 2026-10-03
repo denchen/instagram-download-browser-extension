@@ -74,7 +74,7 @@ export function handleStoriesVideoVolumeChange(e: Event) {
     }
 }
 
-export function handleVideVolumeChange(e: Event, groupDiv: HTMLDivElement) {
+function handleVideVolumeChange(e: Event, groupDiv: HTMLDivElement) {
     const videoTarget = e.target;
     if (!(videoTarget instanceof HTMLVideoElement)) return
     if (volumeChangeGuard.get(videoTarget)) return;

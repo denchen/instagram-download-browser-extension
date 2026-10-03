@@ -67,7 +67,7 @@ export async function saveStories(jsonData: Record<string, any>) {
     }
 }
 
-export async function saveStoriesToLocal(data: Stories.ReelsMedum[]) {
+async function saveStoriesToLocal(data: Stories.ReelsMedum[]) {
     const { stories_reels_media } = await chrome.storage.local.get(['stories_reels_media']);
     const newMap = new Map(stories_reels_media);
     data.forEach((i) => {

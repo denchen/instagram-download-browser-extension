@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
-import { DownloadParams, getMediaName } from './utils/filename';
+import { fromUnixSeconds, DownloadParams, getMediaName } from './utils/filename';
 import { getCurrentStepFromDotsList } from './utils/dom';
 import { ProfileReel } from '../types/profileReel';
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
@@ -157,7 +156,7 @@ export class ReelPageHandler implements PageHandler {
                     username:
                         (new Map(id_to_username_map || []).get(media.user.id) as string) ||
                         document.querySelector('a')?.getAttribute('href')?.replace(/\//g, ''),
-                    datetime: time ? dayjs(time) : undefined,
+                    datetime: time,
                     id: getMediaName(url),
                 });
                 return true;
@@ -192,7 +191,7 @@ export class ReelPageHandler implements PageHandler {
                                     final({
                                         url: url,
                                         username: media.user.username,
-                                        datetime: dayjs.unix(media.taken_at),
+                                        datetime: fromUnixSeconds(media.taken_at),
                                         id: getMediaName(url),
                                     });
                                     return;
@@ -215,7 +214,7 @@ export class ReelPageHandler implements PageHandler {
                 let postTime, posterName;
                 if (res) {
                     posterName = res.owner;
-                    postTime = res.taken_at * 1000;
+                    postTime = fromUnixSeconds(res.taken_at);
                 } else {
                     postTime = document.querySelector('time')?.getAttribute('datetime');
                     const name = document.querySelector<HTMLDivElement>(
@@ -228,7 +227,7 @@ export class ReelPageHandler implements PageHandler {
                 downloadResource({
                     url: url,
                     username: posterName,
-                    datetime: dayjs(postTime),
+                    datetime: postTime,
                     id: getMediaName(url),
                     type: MediaType.Reel,
                 });

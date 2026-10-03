@@ -22,7 +22,7 @@ function handleList(list: NodeListOf<Element>, iconColor: IconColor) {
     });
 }
 
-export function handleThreads(iconColor: IconColor) {
+function handleThreads(iconColor: IconColor) {
     const pathname = window.location.pathname;
     const pathnameList = pathname.split('/').filter((e) => e);
 
