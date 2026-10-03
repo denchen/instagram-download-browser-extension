@@ -9,7 +9,6 @@ function App() {
    const [newTab, setNewTab] = useState<boolean>(true);
    const [threads, setThreads] = useState<boolean>(true);
    const [enableVideoControl, setEnableVideoControl] = useState<boolean>(true);
-   const [enableExploreClickthrough, setEnableExploreClickthrough] = useState<boolean>(true);
    const [enableDownloadAll, setEnableDownloadAll] = useState<boolean>(true);
 
    const isMobile = navigator && navigator.userAgent && /Mobi|Android|iPhone/i.test(navigator.userAgent);
@@ -19,7 +18,6 @@ function App() {
          setNewTab(!!res.setting_show_open_in_new_tab_icon);
          setThreads(!!res.setting_enable_threads);
          setEnableVideoControl(!!res.setting_enable_video_controls);
-         setEnableExploreClickthrough(res.setting_enable_explore_video_clickthrough ?? true);
          setEnableDownloadAll(!!res.setting_show_download_all_icon);
       });
    }, []);
@@ -73,12 +71,6 @@ function App() {
                   setValue={setEnableVideoControl}
                   label="Show Controls Offered By Browser"
                   id="setting_enable_video_controls"
-               />
-               <SettingItem
-                  value={enableExploreClickthrough}
-                  setValue={setEnableExploreClickthrough}
-                  label="Clicking explore videos opens the post"
-                  id="setting_enable_explore_video_clickthrough"
                />
 
                <h2>Threads Settings</h2>

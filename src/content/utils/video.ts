@@ -1,50 +1,6 @@
-import { storageCache } from "./storage";
 import { audioIsMutedSVGPath, audioIsPlayingSVGPath, unmutedSVGPath } from "../../constants";
 
 const volumeChangeGuard = new WeakMap<HTMLVideoElement, boolean>();
-
-export async function handleVideo() {
-    const { setting_enable_video_controls, setting_enable_explore_video_clickthrough } = storageCache.settings;
-    if (!setting_enable_video_controls) return;
-
-    const videos = document.querySelectorAll('video');
-    for (let i = 0; i < videos.length; i++) {
-        const videoPlayerMaskDiv = videos[i].closest('[data-visualcompletion="ignore-late-mutation"]')?.querySelector('div[role="group"]');
-        if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-            handleVideoMaskClip(videoPlayerMaskDiv, videos[i])
-        }
-
-        const allowExploreClickthrough = setting_enable_explore_video_clickthrough ?? true;
-        if (allowExploreClickthrough) attachExploreNavigation(videos[i]);
-    }
-}
-
-function attachExploreNavigation(video: HTMLVideoElement) {
-    if (!window.location.pathname.startsWith('/explore')) return;
-
-    const link = video.closest<HTMLAnchorElement>('a[href]');
-    if (!link) return;
-    if (video.dataset.enableExploreNav === 'true') return;
-
-    video.dataset.enableExploreNav = 'true';
-    video.addEventListener(
-        'click',
-        (event) => {
-            if (!(event instanceof MouseEvent)) return;
-            const controlZoneHeight = 72; // approximate height covered by native controls
-            const offsetFromBottom = video.clientHeight - event.offsetY;
-
-            // Keep control interactions working by skipping clicks near the control bar
-            if (Number.isFinite(offsetFromBottom) && offsetFromBottom <= controlZoneHeight) return;
-
-            event.preventDefault();
-            event.stopPropagation();
-            const href = link.href || new URL(link.getAttribute('href') || '', window.location.origin).href;
-            window.open(href, link.target || '_self');
-        },
-        true
-    );
-}
 
 export function handleStoriesVideoVolumeChange(e: Event) {
     const target = e.target;

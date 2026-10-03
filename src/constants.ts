@@ -3,7 +3,6 @@ export const CONFIG_LIST = [
     'setting_show_download_all_icon',
     'setting_enable_threads',
     'setting_enable_video_controls',
-    'setting_enable_explore_video_clickthrough',
 ];
 
 export enum MediaType {
