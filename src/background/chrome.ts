@@ -17,6 +17,10 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (Object.keys(updates).length > 0) {
     await chrome.storage.sync.set(updates);
   }
+
+  // `reels` was written alongside `reels_media` but never read; clear what
+  // older versions left behind.
+  await chrome.storage.local.remove("reels");
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -138,15 +142,12 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             break;
           // presentation stories in home page top
           case "/api/v1/feed/reels_media/?reel_ids=":
-            const { reels, reels_media } = await chrome.storage.local.get(["reels", "reels_media"]);
+            const { reels_media } = await chrome.storage.local.get(["reels_media"]);
             const newArr = (reels_media || []).filter(
               (i: ReelsMedia.ReelsMedum) =>
                 !(jsonData as ReelsMedia.Root).reels_media.find((j) => j.id === i.id),
             );
-            await chrome.storage.local.set({
-              reels: Object.assign({}, reels, data.reels),
-              reels_media: [...newArr, ...jsonData.reels_media],
-            });
+            await chrome.storage.local.set({ reels_media: [...newArr, ...jsonData.reels_media] });
             break;
         }
       } catch (e) {

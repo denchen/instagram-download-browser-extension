@@ -9,7 +9,6 @@ declare module "react" {
 
 declare namespace ReelsMedia {
   export interface Root {
-    reels: Record<string, ReelsMedum>;
     reels_media: ReelsMedum[];
     status: string;
   }

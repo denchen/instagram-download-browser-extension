@@ -18,6 +18,10 @@ browser.runtime.onInstalled.addListener(async () => {
     await browser.storage.sync.set(updates);
   }
 
+  // `reels` was written alongside `reels_media` but never read; clear what
+  // older versions left behind.
+  await browser.storage.local.remove("reels");
+
   // 2. Check permissions (Firefox specific)
   if (
     !(await browser.permissions.contains({
@@ -45,15 +49,12 @@ async function listenInstagram(
       break;
     default:
       if (details.url.startsWith("https://www.instagram.com/api/v1/feed/reels_media/?reel_ids=")) {
-        const { reels, reels_media } = await browser.storage.local.get(["reels", "reels_media"]);
+        const { reels_media } = await browser.storage.local.get(["reels_media"]);
         const newArr = (reels_media || []).filter(
           (i: ReelsMedia.ReelsMedum) =>
             !(jsonData as ReelsMedia.Root).reels_media.find((j) => j.id === i.id),
         );
-        await browser.storage.local.set({
-          reels: Object.assign({}, reels, jsonData.reels),
-          reels_media: [...newArr, ...jsonData.reels_media],
-        });
+        await browser.storage.local.set({ reels_media: [...newArr, ...jsonData.reels_media] });
       }
       break;
   }
