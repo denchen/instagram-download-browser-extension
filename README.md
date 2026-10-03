@@ -48,6 +48,7 @@ This project uses [pnpm](https://pnpm.io/) and [esbuild](https://esbuild.github.
    ```
 
 4. Lint and format before committing ([oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs/docs/guide/usage/formatter)):
+
    ```bash
    pnpm run lint
    pnpm run fmt
