@@ -59,8 +59,7 @@ const findAppId = () => {
  * post link nearest the clicked element. That needs `target` threaded through
  * getDataFromAPI and getUrlFromInfoApi, and is left as a follow-up.
  */
-function findPostId(articleNode: HTMLElement) {
-  const pathname = window.location.pathname;
+export function findPostId(articleNode: HTMLElement, pathname = window.location.pathname) {
   if (pathname.startsWith("/reels/")) {
     return pathname.split("/")[2];
   } else if (pathname.startsWith("/stories/")) {
