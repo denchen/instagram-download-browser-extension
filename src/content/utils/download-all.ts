@@ -1,6 +1,7 @@
 import { fromUnixSeconds } from "./filename";
 import { MediaType } from "../../constants";
-import { downloadResource, getDataFromAPI, getImgOrVideoUrl } from "./fn";
+import { downloadResource, getDataFromAPI } from "./fn";
+import { getImgOrVideoUrl } from "./media";
 
 /**
  * Downloads every item of a post as its own file, replacing the previous
