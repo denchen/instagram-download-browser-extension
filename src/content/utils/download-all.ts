@@ -1,4 +1,4 @@
-import dayjs from "dayjs";
+import { fromUnixSeconds } from "./filename";
 import { MediaType } from "../../constants";
 import { downloadResource, getDataFromAPI, getImgOrVideoUrl } from "./fn";
 
@@ -36,7 +36,7 @@ export async function handleDownloadAll(articleNode: HTMLElement) {
         await downloadResource({
             url: getImgOrVideoUrl(data),
             username: data.owner?.username,
-            datetime: dayjs.unix(data.taken_at),
+            datetime: fromUnixSeconds(data.taken_at),
             type: MediaType.Post,
         });
         return;
@@ -51,7 +51,7 @@ export async function handleDownloadAll(articleNode: HTMLElement) {
         await downloadResource({
             url: getImgOrVideoUrl(resource),
             username: resource.owner?.username || data.owner?.username,
-            datetime: dayjs.unix(resource.taken_at ?? data.taken_at),
+            datetime: fromUnixSeconds(resource.taken_at ?? data.taken_at),
             index: i + 1,
             type: MediaType.Post,
         });

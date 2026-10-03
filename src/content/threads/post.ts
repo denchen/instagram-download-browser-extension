@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
 import { downloadResource, openInNewTab } from '../utils/fn';
-import { getMediaName } from '../utils/filename';
+import { fromUnixSeconds, getMediaName } from '../utils/filename';
 import { MediaType } from "../../constants";
 
 function findFeedDataEdges(obj: Record<string, any>): Array<Record<string, any>> | null {
@@ -47,7 +46,7 @@ function handleMedia(post: any, action: 'download' | 'open') {
         final({
             url: url,
             username: post.user.username,
-            datetime: dayjs.unix(post.taken_at),
+            datetime: fromUnixSeconds(post.taken_at),
             id: getMediaName(url),
         });
     }
@@ -58,7 +57,7 @@ function handleMedia(post: any, action: 'download' | 'open') {
             final({
                 url: url,
                 username: post.user.username,
-                datetime: dayjs.unix(post.taken_at),
+                datetime: fromUnixSeconds(post.taken_at),
                 id: getMediaName(url),
             });
         });
@@ -68,7 +67,7 @@ function handleMedia(post: any, action: 'download' | 'open') {
             final({
                 url: url,
                 username: post.user.username,
-                datetime: dayjs.unix(post.taken_at),
+                datetime: fromUnixSeconds(post.taken_at),
                 id: getMediaName(url),
             });
         } else {
@@ -79,7 +78,7 @@ function handleMedia(post: any, action: 'download' | 'open') {
                 final({
                     url: url,
                     username: post.user.username,
-                    datetime: dayjs.unix(post.taken_at),
+                    datetime: fromUnixSeconds(post.taken_at),
                     id: getMediaName(url),
                 });
             } else if (data && Array.isArray(data.carousel_media)) {
@@ -89,7 +88,7 @@ function handleMedia(post: any, action: 'download' | 'open') {
                     final({
                         url: url,
                         username: post.user.username,
-                        datetime: dayjs.unix(post.taken_at),
+                        datetime: fromUnixSeconds(post.taken_at),
                         id: getMediaName(url),
                     });
                 });

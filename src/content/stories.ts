@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
-import { getMediaName } from './utils/filename';
+import { fromUnixSeconds, getMediaName } from './utils/filename';
 import type { Stories } from '../types/stories';
 import type { ReelsMedia } from '../types/global';
 import { getParentSectionNode } from "./utils/dom";
@@ -100,7 +99,7 @@ export class StoriesPageHandler implements PageHandler {
         const handleMedia = (item: Stories.ReelsMedum, mediaIndex: number) => {
             const media = item.items[mediaIndex];
             if (!media) return false;
-            if (dayjs.unix(media.expiring_at).isBefore(dayjs())) {
+            if (fromUnixSeconds(media.expiring_at).getTime() < Date.now()) {
                 return false;
             }
             const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
@@ -116,7 +115,7 @@ export class StoriesPageHandler implements PageHandler {
             final({
                 url: url,
                 username: item.user.username,
-                datetime: dayjs.unix(media.taken_at),
+                datetime: fromUnixSeconds(media.taken_at),
                 id: item.id,
             });
             return true;
@@ -230,7 +229,7 @@ export class StoriesPageHandler implements PageHandler {
                     downloadResource({
                         url: url,
                         username: posterName,
-                        datetime: dayjs(postTime),
+                        datetime: postTime,
                         id: getMediaName(url),
                         type: MediaType.Story,
                     });

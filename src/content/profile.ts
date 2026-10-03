@@ -1,7 +1,7 @@
 import { MediaType } from '../constants';
 import { downloadResource, openInNewTab } from './utils/fn';
 
-export async function profileOnClicked(target: HTMLAnchorElement) {
+async function profileOnClicked(target: HTMLAnchorElement) {
     const { user_profile_pic_url } = await chrome.storage.local.get(['user_profile_pic_url']);
     const data = new Map(user_profile_pic_url || []);
     const arr = window.location.pathname.split('/').filter((e) => e);

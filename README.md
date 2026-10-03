@@ -22,10 +22,8 @@ or [Firefox](https://addons.mozilla.org/addon/ins-downloader/)
 
 ### Core Dependencies
 
-- [dayjs](https://github.com/iamkun/dayjs/) ([MIT License](https://github.com/iamkun/dayjs/blob/dev/LICENSE))
 - [Preact](https://github.com/preactjs/preact) (Used via
   preact/compat, [MIT License](https://github.com/preactjs/preact/blob/master/LICENSE))
-- [zip.js](https://github.com/gildas-lormeau/zip.js) ([BSD-3-Clause License](https://github.com/gildas-lormeau/zip.js/blob/master/LICENSE))
 
 ### Development
 

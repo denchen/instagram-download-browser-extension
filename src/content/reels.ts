@@ -1,6 +1,5 @@
-import dayjs from 'dayjs';
 import { checkType, downloadResource, fetchHtml, getUrlFromInfoApi, openInNewTab } from './utils/fn';
-import { DownloadParams, getMediaName } from './utils/filename';
+import { fromUnixSeconds, DownloadParams, getMediaName } from './utils/filename';
 import type { Reels } from '../types/reels';
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from '../types/global';
@@ -60,7 +59,7 @@ export class ReelsPageHandler implements PageHandler {
             final({
                 url: url,
                 username: media.user.username,
-                datetime: dayjs.unix(media.taken_at),
+                datetime: fromUnixSeconds(media.taken_at),
                 id: getMediaName(url),
             });
         };
@@ -101,7 +100,7 @@ export class ReelsPageHandler implements PageHandler {
             final({
                 url: res.url,
                 username: res.owner,
-                datetime: dayjs.unix(res.taken_at),
+                datetime: fromUnixSeconds(res.taken_at),
                 id: getMediaName(res.url),
             });
         } catch (e: any) {

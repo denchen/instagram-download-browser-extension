@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      dayjs:
-        specifier: ^1.11.20
-        version: 1.11.20
       preact:
         specifier: ^10.29.2
         version: 10.29.2
@@ -36,9 +33,6 @@ importers:
       globals:
         specifier: ^17.6.0
         version: 17.6.0
-      sass:
-        specifier: ^1.100.0
-        version: 1.100.0
       sass-embedded:
         specifier: ^1.100.0
         version: 1.100.0
@@ -736,9 +730,6 @@ packages:
   css-what@6.2.2:
     resolution: {integrity: sha512-u/O3vwbptzhMs3L1fQE82ZSLHQQfto5gyZzwteVIEyeaY5Fc7R4dapF/BvRoSYFeqfBk4m0V1Vafq5Pjv25wvA==}
     engines: {node: '>= 6'}
-
-  dayjs@1.11.20:
-    resolution: {integrity: sha512-YbwwqR/uYpeoP4pu043q+LTDLFBLApUP6VxRihdfNTqu4ubqMlGDLd6ErXhEgsyvY0K6nCs7nggYumAN+9uEuQ==}
 
   debounce@1.2.1:
     resolution: {integrity: sha512-XRRe6Glud4rd/ZGQfiV1ruXSfbvfJedlV9Y6zOlP+2K04vBYiJEte6stfFkCP03aMnY5tsipamumUjL14fofug==}
@@ -2534,8 +2525,6 @@ snapshots:
       nth-check: 2.1.1
 
   css-what@6.2.2: {}
-
-  dayjs@1.11.20: {}
 
   debounce@1.2.1: {}
 

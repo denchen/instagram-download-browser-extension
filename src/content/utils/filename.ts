@@ -1,13 +1,15 @@
-import dayjs, { Dayjs } from "dayjs";
-import utc from "dayjs/plugin/utc";
-import { FILENAME_DATETIME_FORMAT, MediaType, TYPE_FILENAME_PREFIX } from "../../constants";
-
-dayjs.extend(utc);
+import { MediaType, TYPE_FILENAME_PREFIX } from "../../constants";
 
 export interface DownloadParams {
     url: string;
     username?: string;
-    datetime?: string | null | Dayjs | number;
+    /**
+     * A `Date`, or a string `Date` can parse (in practice a `<time datetime>`
+     * attribute). Numbers are deliberately not accepted: the API's `taken_at`
+     * is in seconds while `Date` takes milliseconds, so pass it through
+     * `fromUnixSeconds` rather than leave the unit to the reader.
+     */
+    datetime?: string | null | Date;
     /**
      * No longer part of the filename. Kept on the interface so the ~10 call
      * sites that compute it don't all have to change; drop it (and their
@@ -54,12 +56,21 @@ export function getExtensionFromUrl(url: string, fallback = 'jpg') {
  * Falls back to the current time when the post time is missing or unparseable.
  * Both happen in practice: profile pictures carry no timestamp at all, and
  * profile-reel entries pass `undefined` when the DOM has no readable date.
- * Without this guard `dayjs(bad).format()` yields the literal string
- * "Invalid Date", which would collapse every such download onto one filename.
+ * Without this guard an unparseable value becomes an Invalid Date, whose
+ * `toISOString()` throws.
+ *
+ * The output is UTC, `YYYY.MM.DDTHH.mm.ss`: `toISOString()` is always UTC, so
+ * trim its milliseconds and zone and swap the separators for dots, which are
+ * legal on every filesystem where colons are not.
  */
 function formatTimestamp(datetime?: DownloadParams['datetime']) {
-    const parsed = datetime === undefined || datetime === null ? null : dayjs(datetime);
-    return (parsed?.isValid() ? parsed : dayjs()).utc().format(FILENAME_DATETIME_FORMAT);
+    const parsed = datetime === undefined || datetime === null ? null : new Date(datetime);
+    const date = parsed && !Number.isNaN(parsed.getTime()) ? parsed : new Date();
+    return date.toISOString().slice(0, 19).replace(/[-:]/g, '.');
+}
+
+export function fromUnixSeconds(seconds: number) {
+    return new Date(seconds * 1000);
 }
 
 /**

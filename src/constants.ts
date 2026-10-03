@@ -17,9 +17,8 @@ export enum MediaType {
 }
 
 // Filenames are `[<prefix>]<UTC timestamp>[ <index>]`, e.g.
-// `story - 2026.08.12T16.54.23.jpg`. Dots rather than colons keep the name
-// legal on every filesystem; `T` is bracketed so dayjs emits it literally.
-export const FILENAME_DATETIME_FORMAT = 'YYYY.MM.DD[T]HH.mm.ss';
+// `story - 2026.08.12T16.54.23.jpg`. `formatTimestamp` in
+// content/utils/filename.ts builds the timestamp.
 
 // Prepended to the timestamp, per media type. Posts get nothing. Highlights
 // share the story prefix because they are archived stories.
