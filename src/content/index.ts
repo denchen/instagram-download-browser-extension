@@ -66,4 +66,4 @@ function handleGlobalClick(e: MouseEvent) {
   }
 }
 
-init();
+void init();

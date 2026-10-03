@@ -210,7 +210,7 @@ export async function postOnClicked(target: HTMLAnchorElement) {
           }
         }
       }
-      downloadResource({
+      await downloadResource({
         url: url,
         username: posterName,
         datetime: postTime,
@@ -221,7 +221,7 @@ export async function postOnClicked(target: HTMLAnchorElement) {
         type: MediaType.Post,
       });
     } else {
-      openInNewTab(url);
+      await openInNewTab(url);
     }
   } catch (e: any) {
     alert(DOWNLOAD_FAILED_MESSAGE);

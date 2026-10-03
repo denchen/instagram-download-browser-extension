@@ -58,6 +58,9 @@ describe("findPostId", () => {
   });
 });
 
+const urlOf = (input: RequestInfo | URL) =>
+  input instanceof Request ? input.url : input.toString();
+
 describe("getUrlFromInfoApi", () => {
   const APP_ID = "1234567890";
   const MEDIA_ID = "9876543210";
@@ -66,7 +69,7 @@ describe("getUrlFromInfoApi", () => {
 
   const mockApi = (item: unknown, status = 200) => {
     const fetchMock = vi.fn<typeof fetch>((input) => {
-      const url = String(input);
+      const url = urlOf(input);
       if (url === PERMALINK) {
         return Promise.resolve(new Response(`<script>{"media_id":"${MEDIA_ID}"}</script>`));
       }
@@ -101,7 +104,7 @@ describe("getUrlFromInfoApi", () => {
   it("calls the info API with the app id", async () => {
     const fetchMock = mockApi(photo("single"));
     await fn.getUrlFromInfoApi(document.body);
-    const init = fetchMock.mock.calls.find(([url]) => String(url) === INFO_URL)?.[1];
+    const init = fetchMock.mock.calls.find(([input]) => urlOf(input) === INFO_URL)?.[1];
     expect(init?.headers).toMatchObject({ "X-IG-App-ID": APP_ID });
   });
 

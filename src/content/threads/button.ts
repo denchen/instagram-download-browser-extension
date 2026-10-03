@@ -13,6 +13,6 @@ export function handleThreadsButton(target: HTMLAnchorElement) {
   const container = findContainerNode(target);
 
   if (container instanceof HTMLDivElement) {
-    handleThreadsPost(container, action);
+    void handleThreadsPost(container, action);
   }
 }

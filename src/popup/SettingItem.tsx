@@ -14,7 +14,7 @@ const SettingItem: React.FC<{
         id={id}
         checked={value}
         onChange={() => {
-          chrome.storage.sync.set({ [id]: !value });
+          void chrome.storage.sync.set({ [id]: !value });
           setValue((p) => !p);
           if (onChange) onChange();
         }}

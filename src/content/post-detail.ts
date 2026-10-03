@@ -157,7 +157,7 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
           posterName = name.innerText || posterName;
         }
       }
-      downloadResource({
+      await downloadResource({
         url: url,
         username: posterName,
         datetime: postTime,
@@ -168,7 +168,7 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
         type: MediaType.Post,
       });
     } else {
-      openInNewTab(url);
+      await openInNewTab(url);
     }
   } catch (e: any) {
     alert(DOWNLOAD_FAILED_MESSAGE);

@@ -36,9 +36,9 @@ function handleMedia(post: any, action: "download" | "open") {
     post;
   const final = (obj: any) => {
     if (action === "download") {
-      downloadResource({ ...obj, type: MediaType.Threads });
+      void downloadResource({ ...obj, type: MediaType.Threads });
     } else {
-      openInNewTab(obj.url);
+      void openInNewTab(obj.url);
     }
   };
 

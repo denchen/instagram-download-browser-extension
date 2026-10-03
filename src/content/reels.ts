@@ -26,6 +26,7 @@ function findReels(obj: Record<string, any>): Reels.XdtApiV1ClipsHomeConnectionV
       }
     }
   }
+  return undefined;
 }
 
 export class ReelsPageHandler implements PageHandler {
@@ -55,9 +56,9 @@ export class ReelsPageHandler implements PageHandler {
   async onCustomButtonClick(target: HTMLAnchorElement) {
     const final = (obj: DownloadParams) => {
       if (target.className.includes("download-btn")) {
-        downloadResource({ ...obj, type: MediaType.Reel });
+        void downloadResource({ ...obj, type: MediaType.Reel });
       } else {
-        openInNewTab(obj.url);
+        void openInNewTab(obj.url);
       }
     };
 

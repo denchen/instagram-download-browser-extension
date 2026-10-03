@@ -18,6 +18,7 @@ function findHighlight(
       }
     }
   }
+  return undefined;
 }
 
 export async function highlightsOnClicked(
@@ -35,7 +36,7 @@ export async function highlightsOnClicked(
   const final = (url: string, filenameObj?: Omit<DownloadParams, "url" | "type">) => {
     if (target.className.includes("download-btn")) {
       if (filenameObj) {
-        downloadResource({
+        void downloadResource({
           url: url,
           ...filenameObj,
           type: MediaType.Highlight,
@@ -59,7 +60,7 @@ export async function highlightsOnClicked(
         const postTime = [...sectionNode.querySelectorAll("time")]
           .find((i) => i.classList.length !== 0)
           ?.getAttribute("datetime");
-        downloadResource({
+        void downloadResource({
           url: url,
           username: posterName,
           datetime: postTime,
@@ -68,7 +69,7 @@ export async function highlightsOnClicked(
         });
       }
     } else {
-      openInNewTab(url);
+      void openInNewTab(url);
     }
   };
 

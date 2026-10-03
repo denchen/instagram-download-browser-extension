@@ -153,7 +153,7 @@ export function handleVideoCoverDownloadBtn(node: HTMLElement) {
         .getPropertyValue("background-image")
         .match(/url\((.*)\)/)?.[1];
       if (url) {
-        downloadResource({
+        void downloadResource({
           url: JSON.parse(url),
           username,
           type: MediaType.Cover,
@@ -163,7 +163,7 @@ export function handleVideoCoverDownloadBtn(node: HTMLElement) {
   } else {
     const imgSrc = node.querySelector("img")?.getAttribute("src");
     if (imgSrc) {
-      downloadResource({
+      void downloadResource({
         url: imgSrc,
         username,
         type: MediaType.Cover,

@@ -1,12 +1,15 @@
 import { EXTENSION_ID } from "./constants";
 
+// Saved unbound on purpose: the replacement below calls it with
+// `.apply(this, arguments)`, re-binding it to each XHR instance.
+// oxlint-disable-next-line typescript/unbound-method
 const oldXHROpen = window.XMLHttpRequest.prototype.open;
 
 window.XMLHttpRequest.prototype.open = function (method, url) {
   if (method === "GET" && typeof url === "string") {
     if (url.includes("/api/v1/feed/reels_media/?reel_ids=")) {
       this.addEventListener("load", function () {
-        chrome.runtime.sendMessage(EXTENSION_ID, {
+        void chrome.runtime.sendMessage(EXTENSION_ID, {
           data: this.responseText,
           api: "/api/v1/feed/reels_media/?reel_ids=",
         });
@@ -41,7 +44,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
       case "/ajax/route-definition/":
       case "https://www.threads.com/ajax/route-definition/":
         this.addEventListener("load", function () {
-          chrome.runtime.sendMessage(EXTENSION_ID, {
+          void chrome.runtime.sendMessage(EXTENSION_ID, {
             type: "threads_searchResults",
             data: this.responseText,
           });
@@ -50,7 +53,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
       case "/graphql/query":
       case "https://www.instagram.com/graphql/query":
         this.addEventListener("load", function () {
-          chrome.runtime.sendMessage(EXTENSION_ID, {
+          void chrome.runtime.sendMessage(EXTENSION_ID, {
             api: "https://www.instagram.com/graphql/query",
             data: this.responseText,
           });
@@ -59,7 +62,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
             const data = JSON.parse(this.responseText);
             // Threads
             if (Array.isArray(data.data?.feedData?.edges)) {
-              chrome.runtime.sendMessage(EXTENSION_ID, {
+              void chrome.runtime.sendMessage(EXTENSION_ID, {
                 type: "threads",
                 data: data.data.feedData.edges.flatMap(
                   (i: any) =>
@@ -70,31 +73,31 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
               });
             }
             if (Array.isArray(data.data?.mediaData?.edges)) {
-              chrome.runtime.sendMessage(EXTENSION_ID, {
+              void chrome.runtime.sendMessage(EXTENSION_ID, {
                 type: "threads",
                 data: data.data.mediaData.edges.flatMap((i: any) => i.node.thread_items),
               });
             }
             if (Array.isArray(data.data?.data?.edges)) {
-              chrome.runtime.sendMessage(EXTENSION_ID, {
+              void chrome.runtime.sendMessage(EXTENSION_ID, {
                 type: "threads",
                 data: data.data.data.edges.flatMap((i: any) => i.node.thread_items),
               });
             }
             if (Array.isArray(data.data?.results?.edges)) {
-              chrome.runtime.sendMessage(EXTENSION_ID, {
+              void chrome.runtime.sendMessage(EXTENSION_ID, {
                 type: "threads",
                 data: data.data.results.edges.flatMap((i: any) => i.node.thread_items),
               });
             }
             if (typeof data.data?.replyPost === "object") {
-              chrome.runtime.sendMessage(EXTENSION_ID, {
+              void chrome.runtime.sendMessage(EXTENSION_ID, {
                 type: "threads",
                 data: [data.data.replyPost],
               });
             }
             if (Array.isArray(data.data?.searchResults?.edges)) {
-              chrome.runtime.sendMessage(EXTENSION_ID, {
+              void chrome.runtime.sendMessage(EXTENSION_ID, {
                 type: "threads",
                 data: data.data.searchResults.edges.flatMap((i: any) => i.node.thread.thread_items),
               });
@@ -108,7 +111,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
       case "https://www.threads.com/graphql/query":
       case "/api/graphql":
         this.addEventListener("load", function () {
-          chrome.runtime.sendMessage(EXTENSION_ID, {
+          void chrome.runtime.sendMessage(EXTENSION_ID, {
             api: "https://www.instagram.com/api/graphql",
             data: this.responseText,
           });
