@@ -26,7 +26,8 @@
     "dev:ff": "npx tsc --noEmit && node esbuild.config.mjs firefox --watch",
     "sign:ff": "pnpm run build:ff && web-ext sign --channel=unlisted --source-dir=dist/firefox --artifacts-dir=web-ext-artifacts",
     "android": "node ./node_modules/web-ext/bin/web-ext.js run -t firefox-android --android-device=5e843fe4 --firefox-apk org.mozilla.fenix --source-dir ./dist/firefox",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
@@ -45,6 +46,7 @@
     "oxlint": "^1.86.0",
     "sass-embedded": "^1.100.0",
     "typescript": "^6.0.3",
+    "vitest": "^5.0.3",
     "web-ext": "^10.2.0"
   },
   "engines": {
