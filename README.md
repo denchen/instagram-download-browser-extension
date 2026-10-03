@@ -44,6 +44,12 @@ This project uses [pnpm](https://pnpm.io/) and [esbuild](https://esbuild.github.
    pnpm run build:ff
    ```
 
+4. Lint and format before committing ([oxlint](https://oxc.rs/docs/guide/usage/linter) and [oxfmt](https://oxc.rs/docs/guide/usage/formatter)):
+   ```bash
+   pnpm run lint
+   pnpm run fmt
+   ```
+
 ### Thanks
 
 [Instagram_Download_Button](https://github.com/y252328/Instagram_Download_Button)

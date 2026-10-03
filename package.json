@@ -12,7 +12,9 @@
     "android": "node ./node_modules/web-ext/bin/web-ext.js run -t firefox-android --android-device=5e843fe4 --firefox-apk org.mozilla.fenix --source-dir ./dist/firefox",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "oxlint",
-    "lint:fix": "oxlint --fix"
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
   },
   "keywords": [
     "Instagram",
@@ -39,6 +41,7 @@
     "chrome-types": "^0.1.429",
     "esbuild": "^0.28.0",
     "esbuild-sass-plugin": "^3.7.0",
+    "oxfmt": "^0.71.0",
     "oxlint": "^1.86.0",
     "sass-embedded": "^1.100.0",
     "typescript": "^6.0.3",
