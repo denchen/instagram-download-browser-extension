@@ -1,0 +1,9 @@
+# pnpm settings (pnpm 11+ reads only auth and registry settings from .npmrc).
+
+# Dependencies with install scripts must be allowed or denied explicitly.
+# Neither script is needed: esbuild's postinstall only validates and
+# optimizes the binary that its platform package already provides, and
+# @parcel/watcher (via sass) ships prebuilt binaries the same way.
+allowBuilds:
+  esbuild: false
+  "@parcel/watcher": false
