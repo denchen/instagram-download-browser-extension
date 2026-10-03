@@ -1,271 +1,310 @@
-import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab, } from './utils/fn';
-import { fromUnixSeconds, getMediaName } from './utils/filename';
+import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
+import { fromUnixSeconds, getMediaName } from "./utils/filename";
 import { getCurrentStepFromDotsList, getParentArticleNode } from "./utils/dom";
-import { CLASS_CUSTOM_BUTTON, DOWNLOAD_FAILED_MESSAGE, likeIconSelector, MediaType, tagIconSelector } from "../constants";
-import { storageCache } from './utils/storage';
-import type { IconColor } from '../types/global';
+import {
+  CLASS_CUSTOM_BUTTON,
+  DOWNLOAD_FAILED_MESSAGE,
+  likeIconSelector,
+  MediaType,
+  tagIconSelector,
+} from "../constants";
+import { storageCache } from "./utils/storage";
+import type { IconColor } from "../types/global";
 import { handleVideoMaskClip } from "./utils/video";
-import { addCustomBtn } from './button';
-import type { PageHandler } from './handlers';
-import { postDetailOnClicked } from './post-detail';
+import { addCustomBtn } from "./button";
+import type { PageHandler } from "./handlers";
+import { postDetailOnClicked } from "./post-detail";
 
 async function fetchVideoURL(articleNode: HTMLElement, videoElem: HTMLVideoElement) {
-    const poster = videoElem.getAttribute('poster');
-    const timeNodes = [...articleNode.querySelectorAll('time')];
-    const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
-    const posterPattern = /\/([^/?]*)\?/;
-    const posterMatch = poster?.match(posterPattern);
-    const postFileName = posterMatch?.[1];
-    const resp = await fetch(posterUrl);
-    const content = await resp.text();
-    const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, 's');
-    const match = content.match(pattern);
-    let videoUrl = JSON.parse(match?.[1] ?? '');
-    videoUrl = videoUrl.replaceAll(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
-    videoElem.setAttribute('videoURL', videoUrl);
-    return videoUrl;
+  const poster = videoElem.getAttribute("poster");
+  const timeNodes = [...articleNode.querySelectorAll("time")];
+  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
+  const posterPattern = /\/([^/?]*)\?/;
+  const posterMatch = poster?.match(posterPattern);
+  const postFileName = posterMatch?.[1];
+  const resp = await fetch(posterUrl);
+  const content = await resp.text();
+  const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, "s");
+  const match = content.match(pattern);
+  let videoUrl = JSON.parse(match?.[1] ?? "");
+  videoUrl = videoUrl.replaceAll(
+    /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g,
+    "https://scontent.cdninstagram.com",
+  );
+  videoElem.setAttribute("videoURL", videoUrl);
+  return videoUrl;
 }
 
 const getVideoSrc = async (articleNode: HTMLElement, videoElem: HTMLVideoElement) => {
-    let url = videoElem.getAttribute('src');
-    if (videoElem.hasAttribute('videoURL')) {
-        url = videoElem.getAttribute('videoURL');
-    } else if (url === null || url.includes('blob')) {
-        url = await fetchVideoURL(articleNode, videoElem);
-    }
-    return url;
+  let url = videoElem.getAttribute("src");
+  if (videoElem.hasAttribute("videoURL")) {
+    url = videoElem.getAttribute("videoURL");
+  } else if (url === null || url.includes("blob")) {
+    url = await fetchVideoURL(articleNode, videoElem);
+  }
+  return url;
 };
 
 async function postGetUrl(articleNode: HTMLElement) {
-    let url, res;
-    let mediaIndex = -1;
+  let url, res;
+  let mediaIndex = -1;
 
-    if (articleNode.querySelectorAll('li[style][class]').length === 0) {
-        // single img or video
-        res = await getUrlFromInfoApi(articleNode);
-        url = res?.url;
-        if (!url) {
-            const videoElem = articleNode.querySelector<HTMLVideoElement>('article  div > video');
-            const imgElem = articleNode.querySelector<HTMLImageElement>('article  div[role] div > img');
-            if (videoElem) {
-                // media type is video
-                if (videoElem) {
-                    url = await getVideoSrc(articleNode, videoElem);
-                }
-            } else if (imgElem) {
-                // media type is image
-                url = imgElem.getAttribute('src');
-            } else {
-                console.log('Err: not find media at handle post single');
-            }
+  if (articleNode.querySelectorAll("li[style][class]").length === 0) {
+    // single img or video
+    res = await getUrlFromInfoApi(articleNode);
+    url = res?.url;
+    if (!url) {
+      const videoElem = articleNode.querySelector<HTMLVideoElement>("article  div > video");
+      const imgElem = articleNode.querySelector<HTMLImageElement>("article  div[role] div > img");
+      if (videoElem) {
+        // media type is video
+        if (videoElem) {
+          url = await getVideoSrc(articleNode, videoElem);
         }
-    } else {
-        // multiple media
-        const isPostView = window.location.pathname.startsWith('/p/');
-
-        // Slide index, in descending order of trustworthiness:
-        //   1. the rendered slide indicators, which describe the post actually
-        //      on screen;
-        //   2. ?img_index, which is SPA state Instagram does not reset when the
-        //      modal arrows move between posts, so it can name a slide from a
-        //      previous, longer post;
-        //   3. geometry - whichever <li> currently sits inside the container.
-        // The URL used to be tier 1, which is how a stale index silently picked
-        // the wrong slide, and crashed outright when it pointed past the end.
-        let dotsList: any
-        if (isPostView) {
-            dotsList = articleNode.querySelectorAll(`:scope>div>div:nth-child(1)>div>div>div:nth-child(2)>div`);
-        } else {
-            if (checkType() === 'pc') {
-                dotsList = articleNode.querySelector('button[aria-current]')?.parentNode?.children
-            } else {
-                dotsList = articleNode.querySelectorAll(`:scope > div > div:nth-child(2) > div>div>div>div>div>div>div:nth-child(2)>div`);
-            }
-        }
-
-        // dotsList can be undefined via the optional-chained querySelector above.
-        const dotsIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
-        const idxFromUrl = new URLSearchParams(window.location.search).get('img_index');
-
-        if (dotsIndex >= 0) {
-            mediaIndex = dotsIndex;
-        } else if (idxFromUrl) {
-            console.warn('Could not read the slide indicators; falling back to ?img_index, which may be stale.');
-            mediaIndex = +idxFromUrl - 1;
-        } else {
-            // Neither indicators nor URL: fall back to whichever slide is on
-            // screen. Nearest-centre rather than strict containment, because at
-            // narrow widths a slide exactly fills the container — measured
-            // article x=210 right=391 with the visible image at x=210 right=391,
-            // so `rect.x > x && rect.right < right` was false for every image and
-            // this path could never succeed.
-            //
-            // Returns a URL with no `res` and no index, so the caller falls back
-            // to DOM-scraped metadata and the filename gets no ` NN` suffix. The
-            // src may also be a smaller rendition; the download log reports the
-            // size when the URL declares one. Degraded but correct, versus
-            // failing outright.
-            console.warn("cannot get dotsList!")
-            const imgList = [...articleNode.querySelectorAll<HTMLImageElement>(`${isPostView ? ':scope>div>div:nth-child(1)' : ''} li img`)];
-            if (imgList.length > 0) {
-                const bounds = articleNode.getBoundingClientRect();
-                const centre = bounds.x + bounds.width / 2;
-                let closest = imgList[0];
-                let closestDistance = Infinity;
-                for (const item of imgList) {
-                    const rect = item.getBoundingClientRect();
-                    const distance = Math.abs(rect.x + rect.width / 2 - centre);
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closest = item;
-                    }
-                }
-                url = closest.getAttribute('src');
-                if (url) return { url };
-            }
-            return null;
-        }
-        res = await getUrlFromInfoApi(articleNode, mediaIndex);
-        url = res?.url;
-        if (!url) {
-            console.warn("get media url from api failed, fallback to html attr")
-            const listElements = [
-                ...articleNode.querySelectorAll(
-                    `:scope > div > div:nth-child(${isPostView ? 1 : 2}) > div > div:nth-child(1) ul li[style*="translateX"]`
-                ),
-            ] as HTMLLIElement[];
-            const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
-            const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
-                listElements.map((element) => [Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth), element]),
-            );
-
-            const node = positionsMap[mediaIndex];
-            const videoElem = node.querySelector('video');
-            const imgElem = node.querySelector('img');
-            if (videoElem) {
-                // media type is video
-                url = await getVideoSrc(articleNode, videoElem);
-            } else if (imgElem) {
-                // media type is image
-                url = imgElem.getAttribute('src');
-            }
-        }
+      } else if (imgElem) {
+        // media type is image
+        url = imgElem.getAttribute("src");
+      } else {
+        console.log("Err: not find media at handle post single");
+      }
     }
-    return { url, res, mediaIndex };
+  } else {
+    // multiple media
+    const isPostView = window.location.pathname.startsWith("/p/");
+
+    // Slide index, in descending order of trustworthiness:
+    //   1. the rendered slide indicators, which describe the post actually
+    //      on screen;
+    //   2. ?img_index, which is SPA state Instagram does not reset when the
+    //      modal arrows move between posts, so it can name a slide from a
+    //      previous, longer post;
+    //   3. geometry - whichever <li> currently sits inside the container.
+    // The URL used to be tier 1, which is how a stale index silently picked
+    // the wrong slide, and crashed outright when it pointed past the end.
+    let dotsList: any;
+    if (isPostView) {
+      dotsList = articleNode.querySelectorAll(
+        `:scope>div>div:nth-child(1)>div>div>div:nth-child(2)>div`,
+      );
+    } else {
+      if (checkType() === "pc") {
+        dotsList = articleNode.querySelector("button[aria-current]")?.parentNode?.children;
+      } else {
+        dotsList = articleNode.querySelectorAll(
+          `:scope > div > div:nth-child(2) > div>div>div>div>div>div>div:nth-child(2)>div`,
+        );
+      }
+    }
+
+    // dotsList can be undefined via the optional-chained querySelector above.
+    const dotsIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+    const idxFromUrl = new URLSearchParams(window.location.search).get("img_index");
+
+    if (dotsIndex >= 0) {
+      mediaIndex = dotsIndex;
+    } else if (idxFromUrl) {
+      console.warn(
+        "Could not read the slide indicators; falling back to ?img_index, which may be stale.",
+      );
+      mediaIndex = +idxFromUrl - 1;
+    } else {
+      // Neither indicators nor URL: fall back to whichever slide is on
+      // screen. Nearest-centre rather than strict containment, because at
+      // narrow widths a slide exactly fills the container — measured
+      // article x=210 right=391 with the visible image at x=210 right=391,
+      // so `rect.x > x && rect.right < right` was false for every image and
+      // this path could never succeed.
+      //
+      // Returns a URL with no `res` and no index, so the caller falls back
+      // to DOM-scraped metadata and the filename gets no ` NN` suffix. The
+      // src may also be a smaller rendition; the download log reports the
+      // size when the URL declares one. Degraded but correct, versus
+      // failing outright.
+      console.warn("cannot get dotsList!");
+      const imgList = [
+        ...articleNode.querySelectorAll<HTMLImageElement>(
+          `${isPostView ? ":scope>div>div:nth-child(1)" : ""} li img`,
+        ),
+      ];
+      if (imgList.length > 0) {
+        const bounds = articleNode.getBoundingClientRect();
+        const centre = bounds.x + bounds.width / 2;
+        let closest = imgList[0];
+        let closestDistance = Infinity;
+        for (const item of imgList) {
+          const rect = item.getBoundingClientRect();
+          const distance = Math.abs(rect.x + rect.width / 2 - centre);
+          if (distance < closestDistance) {
+            closestDistance = distance;
+            closest = item;
+          }
+        }
+        url = closest.getAttribute("src");
+        if (url) return { url };
+      }
+      return null;
+    }
+    res = await getUrlFromInfoApi(articleNode, mediaIndex);
+    url = res?.url;
+    if (!url) {
+      console.warn("get media url from api failed, fallback to html attr");
+      const listElements = [
+        ...articleNode.querySelectorAll(
+          `:scope > div > div:nth-child(${isPostView ? 1 : 2}) > div > div:nth-child(1) ul li[style*="translateX"]`,
+        ),
+      ] as HTMLLIElement[];
+      const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
+      const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
+        listElements.map((element) => [
+          Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth),
+          element,
+        ]),
+      );
+
+      const node = positionsMap[mediaIndex];
+      const videoElem = node.querySelector("video");
+      const imgElem = node.querySelector("img");
+      if (videoElem) {
+        // media type is video
+        url = await getVideoSrc(articleNode, videoElem);
+      } else if (imgElem) {
+        // media type is image
+        url = imgElem.getAttribute("src");
+      }
+    }
+  }
+  return { url, res, mediaIndex };
 }
 
 export async function postOnClicked(target: HTMLAnchorElement) {
-    try {
-        const articleNode = getParentArticleNode(target);
-        if (!articleNode) throw new Error('Cannot find article node');
+  try {
+    const articleNode = getParentArticleNode(target);
+    if (!articleNode) throw new Error("Cannot find article node");
 
-        if (target.className.includes('download-all-btn')) {
-            const { handleDownloadAll } = await import("./utils/download-all")
-            return handleDownloadAll(articleNode)
-        }
-
-        const data = await postGetUrl(articleNode);
-        if (!data?.url) throw new Error('post cannot get url');
-        const { url, res, mediaIndex } = data;
-        console.log('post url=', url);
-        if (target.className.includes('download-btn')) {
-            let postTime, posterName;
-            if (res) {
-                posterName = res.owner;
-                postTime = fromUnixSeconds(res.taken_at);
-            } else {
-                postTime = articleNode.querySelector('time')?.getAttribute('datetime');
-                posterName = articleNode.querySelector('a')?.getAttribute('href')?.replaceAll('/', '');
-                const tagNode = document.querySelector(
-                    'path[d="M21.334 23H2.666a1 1 0 0 1-1-1v-1.354a6.279 6.279 0 0 1 6.272-6.272h8.124a6.279 6.279 0 0 1 6.271 6.271V22a1 1 0 0 1-1 1ZM12 13.269a6 6 0 1 1 6-6 6.007 6.007 0 0 1-6 6Z"]'
-                );
-                if (tagNode) {
-                    const name = document.querySelector<HTMLSpanElement>('article header>div:nth-child(2) span');
-                    if (name) {
-                        posterName = name.innerText || posterName;
-                    }
-                }
-            }
-            downloadResource({
-                url: url,
-                username: posterName,
-                datetime: postTime,
-                id: res?.origin_data?.id || getMediaName(url),
-                // Always indexed: every item in a carousel shares the post's
-                // timestamp, so the ordinal is what keeps their names distinct.
-                index: mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
-                type: MediaType.Post,
-            });
-        } else {
-            openInNewTab(url);
-        }
-    } catch (e: any) {
-        alert(DOWNLOAD_FAILED_MESSAGE);
-        console.log(`Uncaught in postOnClicked(): ${e}\n${e.stack}`);
+    if (target.className.includes("download-all-btn")) {
+      const { handleDownloadAll } = await import("./utils/download-all");
+      return handleDownloadAll(articleNode);
     }
+
+    const data = await postGetUrl(articleNode);
+    if (!data?.url) throw new Error("post cannot get url");
+    const { url, res, mediaIndex } = data;
+    console.log("post url=", url);
+    if (target.className.includes("download-btn")) {
+      let postTime, posterName;
+      if (res) {
+        posterName = res.owner;
+        postTime = fromUnixSeconds(res.taken_at);
+      } else {
+        postTime = articleNode.querySelector("time")?.getAttribute("datetime");
+        posterName = articleNode.querySelector("a")?.getAttribute("href")?.replaceAll("/", "");
+        const tagNode = document.querySelector(
+          'path[d="M21.334 23H2.666a1 1 0 0 1-1-1v-1.354a6.279 6.279 0 0 1 6.272-6.272h8.124a6.279 6.279 0 0 1 6.271 6.271V22a1 1 0 0 1-1 1ZM12 13.269a6 6 0 1 1 6-6 6.007 6.007 0 0 1-6 6Z"]',
+        );
+        if (tagNode) {
+          const name = document.querySelector<HTMLSpanElement>(
+            "article header>div:nth-child(2) span",
+          );
+          if (name) {
+            posterName = name.innerText || posterName;
+          }
+        }
+      }
+      downloadResource({
+        url: url,
+        username: posterName,
+        datetime: postTime,
+        id: res?.origin_data?.id || getMediaName(url),
+        // Always indexed: every item in a carousel shares the post's
+        // timestamp, so the ordinal is what keeps their names distinct.
+        index: mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
+        type: MediaType.Post,
+      });
+    } else {
+      openInNewTab(url);
+    }
+  } catch (e: any) {
+    alert(DOWNLOAD_FAILED_MESSAGE);
+    console.log(`Uncaught in postOnClicked(): ${e}\n${e.stack}`);
+  }
 }
 
 export class PostPageHandler implements PageHandler {
-    match(url: URL, pathnameList: string[]) {
-        const isPostDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === 'p'; // https://www.instagram.com/frankinjection/p/CwAb4TEoRE_/?img_index=1
-        const isReelDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === 'reel'; // https://www.instagram.com/philsnelgrove/reel/B5GeRJoBAc1/
-        return url.pathname.startsWith('/p/') || isPostDetailWithNameInUrl || isReelDetailWithNameInUrl || url.pathname.startsWith('/tv/');
+  match(url: URL, pathnameList: string[]) {
+    const isPostDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === "p"; // https://www.instagram.com/frankinjection/p/CwAb4TEoRE_/?img_index=1
+    const isReelDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === "reel"; // https://www.instagram.com/philsnelgrove/reel/B5GeRJoBAc1/
+    return (
+      url.pathname.startsWith("/p/") ||
+      isPostDetailWithNameInUrl ||
+      isReelDetailWithNameInUrl ||
+      url.pathname.startsWith("/tv/")
+    );
+  }
+
+  process(iconColor: IconColor) {
+    const dialogNode = document.querySelector<HTMLDivElement>('div[role="dialog"]');
+    const wrapperNode = dialogNode ?? document.querySelector("section main");
+    const tagNode = document.querySelector(tagIconSelector);
+
+    this.handleVideo(dialogNode);
+    if (tagNode) {
+      if (wrapperNode) {
+        wrapperNode.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+          const emptyNode = img.parentElement?.nextElementSibling;
+          if (emptyNode instanceof HTMLDivElement && emptyNode.childNodes.length === 0) {
+            emptyNode.style.pointerEvents = "none";
+          }
+        });
+      }
+    } else if (dialogNode) {
+      dialogNode.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+        img.style.zIndex = "999";
+      });
+    } else {
+      document
+        .querySelector("main > div > div")
+        ?.querySelectorAll<HTMLImageElement>("img")
+        .forEach((img) => (img.style.zIndex = "999"));
     }
 
-    process(iconColor: IconColor) {
-        const dialogNode = document.querySelector<HTMLDivElement>('div[role="dialog"]');
-        const wrapperNode = dialogNode ?? document.querySelector('section main');
-        const tagNode = document.querySelector(tagIconSelector);
-
-        this.handleVideo(dialogNode);
-        if (tagNode) {
-            if (wrapperNode) {
-                wrapperNode.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
-                    const emptyNode = img.parentElement?.nextElementSibling;
-                    if (emptyNode instanceof HTMLDivElement && emptyNode.childNodes.length === 0) {
-                        emptyNode.style.pointerEvents = 'none';
-                    }
-                });
-            }
-        } else if (dialogNode) {
-            dialogNode.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
-                img.style.zIndex = '999';
-            });
-        } else {
-            document
-                .querySelector('main > div > div')
-                ?.querySelectorAll<HTMLImageElement>('img')
-                .forEach((img) => (img.style.zIndex = '999'));
-        }
-
-        const likeBtn = wrapperNode?.querySelector(likeIconSelector);
-        const btnsContainer =
-            document.querySelector('div[role="presentation"] section') ||
-            document.querySelector('main[role="main"] section') ||
-            likeBtn?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode;
-        if (btnsContainer instanceof HTMLElement && btnsContainer.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
-            addCustomBtn(window.getComputedStyle(btnsContainer).display === "grid" ? btnsContainer.firstElementChild : btnsContainer, iconColor);
-        }
+    const likeBtn = wrapperNode?.querySelector(likeIconSelector);
+    const btnsContainer =
+      document.querySelector('div[role="presentation"] section') ||
+      document.querySelector('main[role="main"] section') ||
+      likeBtn?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode;
+    if (
+      btnsContainer instanceof HTMLElement &&
+      btnsContainer.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0
+    ) {
+      addCustomBtn(
+        window.getComputedStyle(btnsContainer).display === "grid"
+          ? btnsContainer.firstElementChild
+          : btnsContainer,
+        iconColor,
+      );
     }
+  }
 
-    onCustomButtonClick(target: HTMLAnchorElement) {
-        if (document.querySelector('div[role="dialog"]')) {
-            return postOnClicked(target);
-        } else {
-            return postDetailOnClicked(target);
-        }
+  onCustomButtonClick(target: HTMLAnchorElement) {
+    if (document.querySelector('div[role="dialog"]')) {
+      return postOnClicked(target);
+    } else {
+      return postDetailOnClicked(target);
     }
+  }
 
-    private handleVideo(dialogNode: HTMLDivElement | null) {
-        const { setting_enable_video_controls } = storageCache.settings;
-        if (!setting_enable_video_controls) return;
+  private handleVideo(dialogNode: HTMLDivElement | null) {
+    const { setting_enable_video_controls } = storageCache.settings;
+    if (!setting_enable_video_controls) return;
 
-        const videos = (dialogNode || document).querySelectorAll('video');
-        for (let i = 0; i < videos.length; i++) {
-            const videoPlayerMaskDiv = videos[i].closest('[tabindex="-1"]')?.querySelector('div[role="group"]');
-            if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-                handleVideoMaskClip(videoPlayerMaskDiv, videos[i])
-            }
-        }
+    const videos = (dialogNode || document).querySelectorAll("video");
+    for (let i = 0; i < videos.length; i++) {
+      const videoPlayerMaskDiv = videos[i]
+        .closest('[tabindex="-1"]')
+        ?.querySelector('div[role="group"]');
+      if (videoPlayerMaskDiv instanceof HTMLDivElement) {
+        handleVideoMaskClip(videoPlayerMaskDiv, videos[i]);
+      }
     }
+  }
 }

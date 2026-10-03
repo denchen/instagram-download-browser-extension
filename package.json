@@ -2,6 +2,22 @@
   "name": "instagram-download-browser-extension",
   "version": "2.5.3",
   "description": "",
+  "keywords": [
+    "Instagram",
+    "browser",
+    "download",
+    "extension"
+  ],
+  "homepage": "https://github.com/TheKonka/instagram-download-browser-extension",
+  "bugs": {
+    "url": "https://github.com/TheKonka/instagram-download-browser-extension/issues",
+    "email": "1094918@gmail.com"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "author": {
+    "name": "Konka",
+    "email": "1094918@gmail.com"
+  },
   "type": "module",
   "scripts": {
     "build:chrome": "npx tsc --noEmit && node esbuild.config.mjs chrome",
@@ -16,22 +32,6 @@
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check"
   },
-  "keywords": [
-    "Instagram",
-    "download",
-    "browser",
-    "extension"
-  ],
-  "author": {
-    "name": "Konka",
-    "email": "1094918@gmail.com"
-  },
-  "homepage": "https://github.com/TheKonka/instagram-download-browser-extension",
-  "bugs": {
-    "url": "https://github.com/TheKonka/instagram-download-browser-extension/issues",
-    "email": "1094918@gmail.com"
-  },
-  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "preact": "^10.29.2"
   },

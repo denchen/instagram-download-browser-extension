@@ -1,263 +1,286 @@
-import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
-import { fromUnixSeconds, DownloadParams, getMediaName } from './utils/filename';
-import { getCurrentStepFromDotsList } from './utils/dom';
-import { ProfileReel } from '../types/profileReel';
+import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
+import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
+import { getCurrentStepFromDotsList } from "./utils/dom";
+import { ProfileReel } from "../types/profileReel";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
-import type { IconColor } from '../types/global';
+import type { IconColor } from "../types/global";
 import { handleVideoMaskClip } from "./utils/video";
-import { addCustomBtn } from './button';
-import type { PageHandler } from './handlers';
+import { addCustomBtn } from "./button";
+import type { PageHandler } from "./handlers";
 import { storageCache } from "./utils/storage";
 
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
-    const poster = videoElem.getAttribute('poster');
-    const timeNodes = [...containerNode.querySelectorAll('time')];
-    const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
-    const posterPattern = /\/([^/?]*)\?/;
-    const posterMatch = poster?.match(posterPattern);
-    const postFileName = posterMatch?.[1];
-    const resp = await fetch(posterUrl);
-    const content = await resp.text();
-    const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, 's');
-    const match = content.match(pattern);
-    let videoUrl = JSON.parse(match?.[1] ?? '');
-    videoUrl = videoUrl.replaceAll(/^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g, 'https://scontent.cdninstagram.com');
-    videoElem.setAttribute('videoURL', videoUrl);
-    return videoUrl;
+  const poster = videoElem.getAttribute("poster");
+  const timeNodes = [...containerNode.querySelectorAll("time")];
+  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
+  const posterPattern = /\/([^/?]*)\?/;
+  const posterMatch = poster?.match(posterPattern);
+  const postFileName = posterMatch?.[1];
+  const resp = await fetch(posterUrl);
+  const content = await resp.text();
+  const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, "s");
+  const match = content.match(pattern);
+  let videoUrl = JSON.parse(match?.[1] ?? "");
+  videoUrl = videoUrl.replaceAll(
+    /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g,
+    "https://scontent.cdninstagram.com",
+  );
+  videoElem.setAttribute("videoURL", videoUrl);
+  return videoUrl;
 }
 
 const getVideoSrc = async (containerNode: HTMLElement, videoElem: HTMLVideoElement) => {
-    let url = videoElem.getAttribute('src');
-    if (videoElem.hasAttribute('videoURL')) {
-        url = videoElem.getAttribute('videoURL');
-    } else if (url === null || url.includes('blob')) {
-        url = await fetchVideoURL(containerNode, videoElem);
-    }
-    return url;
+  let url = videoElem.getAttribute("src");
+  if (videoElem.hasAttribute("videoURL")) {
+    url = videoElem.getAttribute("videoURL");
+  } else if (url === null || url.includes("blob")) {
+    url = await fetchVideoURL(containerNode, videoElem);
+  }
+  return url;
 };
 
 async function getUrl() {
-    const containerNode = document.querySelector<HTMLElement>('section main');
-    if (!containerNode) return;
+  const containerNode = document.querySelector<HTMLElement>("section main");
+  if (!containerNode) return;
 
-    const pathnameList = window.location.pathname.split('/').filter((e) => e);
-    const isPostDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === 'p';
+  const pathnameList = window.location.pathname.split("/").filter((e) => e);
+  const isPostDetailWithNameInUrl = pathnameList.length === 3 && pathnameList[1] === "p";
 
-    const mediaList = containerNode.querySelectorAll('li[style][class]');
+  const mediaList = containerNode.querySelectorAll("li[style][class]");
 
-    let url, res;
-    if (mediaList.length === 0) {
-        // single img or video
-        res = await getUrlFromInfoApi(containerNode);
-        url = res?.url;
-        if (!url) {
-            const videoElem: HTMLVideoElement | null = containerNode.querySelector('article  div > video');
-            const imgElem = containerNode.querySelector('article  div[role] div > img');
-            if (videoElem) {
-                // media type is video
-                if (videoElem) {
-                    url = await getVideoSrc(containerNode, videoElem);
-                }
-            } else if (imgElem) {
-                // media type is image
-                url = imgElem.getAttribute('src');
-            } else {
-                console.log('Err: not find media at handle post single');
-            }
+  let url, res;
+  if (mediaList.length === 0) {
+    // single img or video
+    res = await getUrlFromInfoApi(containerNode);
+    url = res?.url;
+    if (!url) {
+      const videoElem: HTMLVideoElement | null =
+        containerNode.querySelector("article  div > video");
+      const imgElem = containerNode.querySelector("article  div[role] div > img");
+      if (videoElem) {
+        // media type is video
+        if (videoElem) {
+          url = await getVideoSrc(containerNode, videoElem);
         }
-    } else {
-        // multiple media
-        let dotsList;
-        if (checkType() === 'pc') {
-            dotsList = isPostDetailWithNameInUrl
-                ? containerNode.querySelectorAll('article>div>div:nth-child(1)>div>div:nth-child(2)>div')
-                : containerNode.querySelectorAll('div[role=button]>div>div>div>div:nth-child(2)>div');
-        } else {
-            dotsList = containerNode.querySelectorAll(`div[role=button][aria-hidden="true"][tabindex="0"]>div>div>div>div:nth-child(2)>div`);
-        }
-        // Shared helper rather than an inline classList.length === 2: it checks
-        // ariaCurrent first and derives the class-count baseline dynamically.
-        // The -1 guard matters here because an unguarded -1 reaches
-        // positionsMap[-1] below, which would throw on the fallback path.
-        let mediaIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
-        if (mediaIndex < 0) {
-            console.warn('Could not read the slide indicators; defaulting to the first slide.');
-            mediaIndex = 0;
-        }
-        res = await getUrlFromInfoApi(containerNode, mediaIndex);
-        url = res?.url;
-        if (!url) {
-            const listElements = [
-                ...containerNode.querySelectorAll<HTMLLIElement>(
-                    `:scope > div > div:nth-child(1) > div > div:nth-child(1) ul li[style*="translateX"]`
-                ),
-            ];
-            const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
-            const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
-                listElements.map((element) => [Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth), element]),
-            );
-
-            const node = positionsMap[mediaIndex];
-            const videoElem = node.querySelector('video');
-            const imgElem = node.querySelector('img');
-            if (videoElem) {
-                // media type is video
-                url = await getVideoSrc(containerNode, videoElem);
-            } else if (imgElem) {
-                // media type is image
-                url = imgElem.getAttribute('src');
-            }
-        }
+      } else if (imgElem) {
+        // media type is image
+        url = imgElem.getAttribute("src");
+      } else {
+        console.log("Err: not find media at handle post single");
+      }
     }
-    return { url, res };
+  } else {
+    // multiple media
+    let dotsList;
+    if (checkType() === "pc") {
+      dotsList = isPostDetailWithNameInUrl
+        ? containerNode.querySelectorAll("article>div>div:nth-child(1)>div>div:nth-child(2)>div")
+        : containerNode.querySelectorAll("div[role=button]>div>div>div>div:nth-child(2)>div");
+    } else {
+      dotsList = containerNode.querySelectorAll(
+        `div[role=button][aria-hidden="true"][tabindex="0"]>div>div>div>div:nth-child(2)>div`,
+      );
+    }
+    // Shared helper rather than an inline classList.length === 2: it checks
+    // ariaCurrent first and derives the class-count baseline dynamically.
+    // The -1 guard matters here because an unguarded -1 reaches
+    // positionsMap[-1] below, which would throw on the fallback path.
+    let mediaIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+    if (mediaIndex < 0) {
+      console.warn("Could not read the slide indicators; defaulting to the first slide.");
+      mediaIndex = 0;
+    }
+    res = await getUrlFromInfoApi(containerNode, mediaIndex);
+    url = res?.url;
+    if (!url) {
+      const listElements = [
+        ...containerNode.querySelectorAll<HTMLLIElement>(
+          `:scope > div > div:nth-child(1) > div > div:nth-child(1) ul li[style*="translateX"]`,
+        ),
+      ];
+      const listElementWidth = Math.max(...listElements.map((element) => element.clientWidth));
+      const positionsMap: Record<string, HTMLLIElement> = Object.fromEntries(
+        listElements.map((element) => [
+          Math.round(Number(element.style.transform.match(/-?(\d+)/)?.[1]) / listElementWidth),
+          element,
+        ]),
+      );
+
+      const node = positionsMap[mediaIndex];
+      const videoElem = node.querySelector("video");
+      const imgElem = node.querySelector("img");
+      if (videoElem) {
+        // media type is video
+        url = await getVideoSrc(containerNode, videoElem);
+      } else if (imgElem) {
+        // media type is image
+        url = imgElem.getAttribute("src");
+      }
+    }
+  }
+  return { url, res };
 }
 
 export class ReelPageHandler implements PageHandler {
-    match(url: URL) {
-        return url.pathname.startsWith('/reel/');
+  match(url: URL) {
+    return url.pathname.startsWith("/reel/");
+  }
+
+  process(iconColor: IconColor) {
+    const dialogNode = document.querySelector('div[role="dialog"]');
+    const node = dialogNode || document;
+    const commentBtn = node.querySelector(
+      'path[d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"]',
+    );
+    this.handleVideo(dialogNode);
+    if (commentBtn && node.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
+      addCustomBtn(
+        commentBtn.parentNode?.parentNode?.parentNode?.parentNode?.parentNode,
+        iconColor,
+        "before",
+      );
     }
+  }
 
-    process(iconColor: IconColor) {
+  async onCustomButtonClick(target: HTMLAnchorElement) {
+    const code = window.location.pathname.split("/").at(-2);
 
-        const dialogNode = document.querySelector('div[role="dialog"]');
-        const node = dialogNode || document;
-        const commentBtn = node.querySelector('path[d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"]');
-        this.handleVideo(dialogNode);
-        if (commentBtn && node.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
-            addCustomBtn(commentBtn.parentNode?.parentNode?.parentNode?.parentNode?.parentNode, iconColor, 'before');
+    const final = (obj: DownloadParams) => {
+      if (target.className.includes("download-btn")) {
+        downloadResource({ ...obj, type: MediaType.Reel });
+      } else {
+        openInNewTab(obj.url);
+      }
+    };
+
+    const getDataFromLocal = async () => {
+      const { profile_reels_edges_data, id_to_username_map } = await chrome.storage.local.get([
+        "profile_reels_edges_data",
+        "id_to_username_map",
+      ]);
+
+      const media = new Map(profile_reels_edges_data || []).get(code) as
+        | ProfileReel.Media
+        | undefined;
+      if (media) {
+        const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+        const times = [
+          ...(target.parentElement?.parentElement?.parentElement?.querySelectorAll("time") ?? []),
+        ];
+        const time = times.at(-1)?.getAttribute("datetime");
+        final({
+          url: url,
+          username:
+            (new Map(id_to_username_map || []).get(media.user.id) as string) ||
+            document.querySelector("a")?.getAttribute("href")?.replaceAll("/", ""),
+          datetime: time,
+          id: getMediaName(url),
+        });
+        return true;
+      }
+      return false;
+    };
+
+    function getDataFromScripts() {
+      function findReel(obj: Record<string, any>): any {
+        for (const key in obj) {
+          if (key === "xdt_api__v1__media__shortcode__web_info") {
+            return obj[key];
+          } else if (typeof obj[key] === "object" && obj[key] !== null) {
+            const result = findReel(obj[key]);
+            if (result) {
+              return result;
+            }
+          }
         }
-    }
+      }
 
-    async onCustomButtonClick(target: HTMLAnchorElement) {
-        const code = window.location.pathname.split('/').at(-2);
-
-        const final = (obj: DownloadParams) => {
-            if (target.className.includes('download-btn')) {
-                downloadResource({ ...obj, type: MediaType.Reel });
-            } else {
-                openInNewTab(obj.url);
-            }
-        };
-
-        const getDataFromLocal = async () => {
-            const {
-                profile_reels_edges_data,
-                id_to_username_map
-            } = await chrome.storage.local.get(['profile_reels_edges_data', 'id_to_username_map']);
-
-            const media = new Map(profile_reels_edges_data || []).get(code) as ProfileReel.Media | undefined;
-            if (media) {
-                const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
-                const times = [...target.parentElement?.parentElement?.parentElement?.querySelectorAll('time') ?? []];
-                const time = times.at(-1)?.getAttribute('datetime');
-                final({
-                    url: url,
-                    username:
-                        (new Map(id_to_username_map || []).get(media.user.id) as string) ||
-                        document.querySelector('a')?.getAttribute('href')?.replaceAll('/', ''),
-                    datetime: time,
-                    id: getMediaName(url),
-                });
-                return true;
-            }
-            return false;
-        };
-
-        function getDataFromScripts() {
-            function findReel(obj: Record<string, any>): any {
-                for (const key in obj) {
-                    if (key === 'xdt_api__v1__media__shortcode__web_info') {
-                        return obj[key];
-                    } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-                        const result = findReel(obj[key]);
-                        if (result) {
-                            return result;
-                        }
-                    }
-                }
-            }
-
-            for (const script of window.document.scripts) {
-                try {
-                    const innerHTML = script.innerHTML;
-                    const data = JSON.parse(innerHTML);
-                    if (innerHTML.includes('xdt_api__v1__media__shortcode__web_info')) {
-                        const res = findReel(data);
-                        if (res) {
-                            for (const media of res.items) {
-                                if (media.code === code) {
-                                    const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
-                                    final({
-                                        url: url,
-                                        username: media.user.username,
-                                        datetime: fromUnixSeconds(media.taken_at),
-                                        id: getMediaName(url),
-                                    });
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                } catch {
-                }
-            }
-        }
-
+      for (const script of window.document.scripts) {
         try {
-            const data = await getUrl();
-            if (!data?.url) throw new Error('profile reel cannot get url');
-
-            const { url, res } = data;
-            console.log('url', url);
-            if (target.className.includes('download-btn')) {
-                let postTime, posterName;
-                if (res) {
-                    posterName = res.owner;
-                    postTime = fromUnixSeconds(res.taken_at);
-                } else {
-                    postTime = document.querySelector('time')?.getAttribute('datetime');
-                    const name = document.querySelector<HTMLDivElement>(
-                        'section main>div>div>div>div:nth-child(2)>div>div>div>div:nth-child(2)>div>div>div'
-                    );
-                    if (name) {
-                        posterName = name.innerText || posterName;
-                    }
-                }
-                downloadResource({
+          const innerHTML = script.innerHTML;
+          const data = JSON.parse(innerHTML);
+          if (innerHTML.includes("xdt_api__v1__media__shortcode__web_info")) {
+            const res = findReel(data);
+            if (res) {
+              for (const media of res.items) {
+                if (media.code === code) {
+                  const url =
+                    media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+                  final({
                     url: url,
-                    username: posterName,
-                    datetime: postTime,
+                    username: media.user.username,
+                    datetime: fromUnixSeconds(media.taken_at),
                     id: getMediaName(url),
-                    type: MediaType.Reel,
-                });
-            } else {
-                openInNewTab(url);
-            }
-        } catch (e) {
-            // Not a swallow: the lines below are a genuine fallback chain. Logged
-            // only so the original cause is visible when the fallback fails too.
-            console.warn('Profile-reel primary path failed; falling back to local data, then page scripts.', e);
-            const res = await getDataFromLocal();
-            if (!res) {
-                if (!document.querySelector('div[role=dialog]')) {
-                    getDataFromScripts();
-                } else {
-                    alert('profile reel get media failed!');
+                  });
+                  return;
                 }
+              }
             }
-        }
+          }
+        } catch {}
+      }
     }
 
-    private handleVideo(dialogNode: Element | null) {
-        const { setting_enable_video_controls } = storageCache.settings;
-        if (!setting_enable_video_controls) return;
+    try {
+      const data = await getUrl();
+      if (!data?.url) throw new Error("profile reel cannot get url");
 
-        const videos = (dialogNode || document).querySelectorAll('video');
-        for (let i = 0; i < videos.length; i++) {
-            const videoPlayerMaskDiv = videos[i].closest('[tabindex="-1"]')?.querySelector('div[role="group"]');
-            if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-                handleVideoMaskClip(videoPlayerMaskDiv, videos[i])
-            }
+      const { url, res } = data;
+      console.log("url", url);
+      if (target.className.includes("download-btn")) {
+        let postTime, posterName;
+        if (res) {
+          posterName = res.owner;
+          postTime = fromUnixSeconds(res.taken_at);
+        } else {
+          postTime = document.querySelector("time")?.getAttribute("datetime");
+          const name = document.querySelector<HTMLDivElement>(
+            "section main>div>div>div>div:nth-child(2)>div>div>div>div:nth-child(2)>div>div>div",
+          );
+          if (name) {
+            posterName = name.innerText || posterName;
+          }
         }
+        downloadResource({
+          url: url,
+          username: posterName,
+          datetime: postTime,
+          id: getMediaName(url),
+          type: MediaType.Reel,
+        });
+      } else {
+        openInNewTab(url);
+      }
+    } catch (e) {
+      // Not a swallow: the lines below are a genuine fallback chain. Logged
+      // only so the original cause is visible when the fallback fails too.
+      console.warn(
+        "Profile-reel primary path failed; falling back to local data, then page scripts.",
+        e,
+      );
+      const res = await getDataFromLocal();
+      if (!res) {
+        if (!document.querySelector("div[role=dialog]")) {
+          getDataFromScripts();
+        } else {
+          alert("profile reel get media failed!");
+        }
+      }
     }
+  }
+
+  private handleVideo(dialogNode: Element | null) {
+    const { setting_enable_video_controls } = storageCache.settings;
+    if (!setting_enable_video_controls) return;
+
+    const videos = (dialogNode || document).querySelectorAll("video");
+    for (let i = 0; i < videos.length; i++) {
+      const videoPlayerMaskDiv = videos[i]
+        .closest('[tabindex="-1"]')
+        ?.querySelector('div[role="group"]');
+      if (videoPlayerMaskDiv instanceof HTMLDivElement) {
+        handleVideoMaskClip(videoPlayerMaskDiv, videos[i]);
+      }
+    }
+  }
 }

@@ -1,259 +1,271 @@
-import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from './utils/fn';
-import { fromUnixSeconds, getMediaName } from './utils/filename';
-import type { Stories } from '../types/stories';
-import type { ReelsMedia } from '../types/global';
+import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
+import { fromUnixSeconds, getMediaName } from "./utils/filename";
+import type { Stories } from "../types/stories";
+import type { ReelsMedia } from "../types/global";
 import { getParentSectionNode } from "./utils/dom";
 import { CLASS_CUSTOM_BUTTON, MediaType, shareIconSelector } from "../constants";
-import { storageCache } from './utils/storage';
+import { storageCache } from "./utils/storage";
 import { handleStoriesVideoVolumeChange, handleVideoMaskClip } from "./utils/video";
-import { addCustomBtn } from './button';
-import type { PageHandler } from './handlers';
-import { highlightsOnClicked } from './highlights';
+import { addCustomBtn } from "./button";
+import type { PageHandler } from "./handlers";
+import { highlightsOnClicked } from "./highlights";
 
 async function storyGetUrl(target: HTMLElement, sectionNode: any) {
-    const res = await getUrlFromInfoApi(target);
-    let url = res?.url;
-    if (!url) {
-        if (sectionNode.querySelector('video > source')) {
-            url = sectionNode.querySelector('video > source').getAttribute('src');
-        } else if (sectionNode.querySelector('img[decoding="sync"]')) {
-            const img = sectionNode.querySelector('img[decoding="sync"]');
-            url = img.srcset.split(/ \d+w/g)[0].trim(); // extract first src from srcset attr. of img
-            if (url && url.length > 0) {
-                return url;
-            }
-            url = sectionNode.querySelector('img[decoding="sync"]').getAttribute('src');
-        } else if (sectionNode.querySelector('video')) {
-            url = sectionNode.querySelector('video').getAttribute('src');
-        }
+  const res = await getUrlFromInfoApi(target);
+  let url = res?.url;
+  if (!url) {
+    if (sectionNode.querySelector("video > source")) {
+      url = sectionNode.querySelector("video > source").getAttribute("src");
+    } else if (sectionNode.querySelector('img[decoding="sync"]')) {
+      const img = sectionNode.querySelector('img[decoding="sync"]');
+      url = img.srcset.split(/ \d+w/g)[0].trim(); // extract first src from srcset attr. of img
+      if (url && url.length > 0) {
+        return url;
+      }
+      url = sectionNode.querySelector('img[decoding="sync"]').getAttribute("src");
+    } else if (sectionNode.querySelector("video")) {
+      url = sectionNode.querySelector("video").getAttribute("src");
     }
-    return url;
+  }
+  return url;
 }
 
 // 递归搜索包含 rootView 的对象
 function findRootView(obj: Record<string, any>): Record<string, any> | undefined {
-    for (const key in obj) {
-        if (key === 'rootView') {
-            return obj[key];
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            const result = findRootView(obj[key]);
-            if (result) {
-                return result;
-            }
-        }
+  for (const key in obj) {
+    if (key === "rootView") {
+      return obj[key];
+    } else if (typeof obj[key] === "object" && obj[key] !== null) {
+      const result = findRootView(obj[key]);
+      if (result) {
+        return result;
+      }
     }
+  }
 }
 
 function findStories(obj: Record<string, any>): Stories.XdtApiV1FeedReelsMedia | undefined {
-    for (const key in obj) {
-        if (key === 'xdt_api__v1__feed__reels_media') {
-            return obj[key];
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            const result = findStories(obj[key]);
-            if (result) {
-                return result;
-            }
-        }
+  for (const key in obj) {
+    if (key === "xdt_api__v1__feed__reels_media") {
+      return obj[key];
+    } else if (typeof obj[key] === "object" && obj[key] !== null) {
+      const result = findStories(obj[key]);
+      if (result) {
+        return result;
+      }
     }
+  }
 }
 
 export class StoriesPageHandler implements PageHandler {
-    private isHighLights = false
-    private containerNode: Element | null = null
+  private isHighLights = false;
+  private containerNode: Element | null = null;
 
-    match(url: URL) {
-        return url.pathname.startsWith('/stories/');
+  match(url: URL) {
+    return url.pathname.startsWith("/stories/");
+  }
+
+  process() {
+    if (window.location.pathname.startsWith("/stories/highlights/")) {
+      this.isHighLights = true;
     }
-
-    process() {
-        if (window.location.pathname.startsWith('/stories/highlights/')) {
-            this.isHighLights = true
-        }
-        const node = document.querySelector('section')?.querySelector('img[decoding="sync"]')?.nextSibling;
-        if (node instanceof HTMLDivElement) {
-            node.style.pointerEvents = 'none';
-        }
-        let wrapperDiv = document.querySelector('body>div:not([hidden])>div>div>div:not([hidden])>div:not([hidden])>div>div section')
-        if (checkType() === "android") {
-            wrapperDiv = document.querySelector('body>div:not([hidden])>div>div>div:not([hidden])>div:not([hidden])>div>div>div>div')
-        }
-        if (!wrapperDiv) {
-            return;
-        }
-        this.containerNode = wrapperDiv
-        const storyMenuBtn = wrapperDiv.querySelector('svg circle');
-        if (storyMenuBtn && wrapperDiv?.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
-            addCustomBtn(storyMenuBtn.parentNode?.parentNode?.parentNode?.parentNode?.parentNode, 'white');
-        }
-        this.handleVideo(wrapperDiv)
+    const node = document
+      .querySelector("section")
+      ?.querySelector('img[decoding="sync"]')?.nextSibling;
+    if (node instanceof HTMLDivElement) {
+      node.style.pointerEvents = "none";
     }
+    let wrapperDiv = document.querySelector(
+      "body>div:not([hidden])>div>div>div:not([hidden])>div:not([hidden])>div>div section",
+    );
+    if (checkType() === "android") {
+      wrapperDiv = document.querySelector(
+        "body>div:not([hidden])>div>div>div:not([hidden])>div:not([hidden])>div>div>div>div",
+      );
+    }
+    if (!wrapperDiv) {
+      return;
+    }
+    this.containerNode = wrapperDiv;
+    const storyMenuBtn = wrapperDiv.querySelector("svg circle");
+    if (storyMenuBtn && wrapperDiv?.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
+      addCustomBtn(
+        storyMenuBtn.parentNode?.parentNode?.parentNode?.parentNode?.parentNode,
+        "white",
+      );
+    }
+    this.handleVideo(wrapperDiv);
+  }
 
-    async onCustomButtonClick(target: HTMLAnchorElement) {
-        if (this.isHighLights) {
-            return highlightsOnClicked(target, this.containerNode);
-        }
-        const pathname = window.location.pathname;
-        const pathnameArr = pathname.split('/').filter((e) => e);
-        const posterName = pathnameArr[1];
+  async onCustomButtonClick(target: HTMLAnchorElement) {
+    if (this.isHighLights) {
+      return highlightsOnClicked(target, this.containerNode);
+    }
+    const pathname = window.location.pathname;
+    const pathnameArr = pathname.split("/").filter((e) => e);
+    const posterName = pathnameArr[1];
 
-        const handleMedia = (item: Stories.ReelsMedum, mediaIndex: number) => {
-            const media = item.items[mediaIndex];
-            if (!media) return false;
-            if (fromUnixSeconds(media.expiring_at).getTime() < Date.now()) {
-                return false;
-            }
-            const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
-            const final = (obj: any) => {
-                if (target.className.includes('download-btn')) {
-                    downloadResource({ ...obj, type: MediaType.Story });
-                } else {
-                    openInNewTab(obj.url);
-                }
-            };
-            // No index: each story carries its own taken_at, so timestamps
-            // already differ between items in the tray.
-            final({
-                url: url,
-                username: item.user.username,
-                datetime: fromUnixSeconds(media.taken_at),
-                id: item.id,
-            });
-            return true;
-        };
-
-        const { stories_reels_media, stories_user_ids, reels_media } = await chrome.storage.local.get([
-            'stories_reels_media',
-            'stories_user_ids',
-            'reels_media'
-        ]);
-
-        const stories_reels_media_data: Map<string, Stories.ReelsMedum> = new Map(stories_reels_media || []);
-
-        // no media_id in url
-        if (pathnameArr.length === 2) {
-            let mediaIndex = 0;
-            const steps = target.parentElement!.firstElementChild!.querySelectorAll(':scope>div');
-            // multiple media, find the media index
-            if (steps.length > 1) {
-                steps.forEach((item, index) => {
-                    if (item.childNodes.length === 1) {
-                        mediaIndex = index;
-                    }
-                });
-            }
-
-            // when open the page from an empty tab, data return with html but not xhr
-            if (window.history.length <= 2) {
-                for (const script of window.document.scripts) {
-                    try {
-                        const innerHTML = script.innerHTML;
-                        const data = JSON.parse(innerHTML);
-                        if (innerHTML.includes('xdt_api__v1__feed__reels_media')) {
-                            const res = findStories(data);
-                            if (res) {
-                                handleMedia(res.reels_media[0], mediaIndex);
-                                return;
-                            }
-                        }
-                    } catch {
-                    }
-                }
-            }
-
-            const user_id = new Map(stories_user_ids || []).get(posterName);
-            if (typeof user_id === 'string') {
-                const item = stories_reels_media_data.get(user_id);
-                if (item && steps.length === item.items.length) {
-                    const result = handleMedia(item, mediaIndex);
-                    if (result) return;
-                }
-            }
-
-            for (const script of window.document.scripts) {
-                try {
-                    const innerHTML = script.innerHTML;
-                    const data = JSON.parse(innerHTML);
-                    if (innerHTML.includes('rootView')) {
-                        const rootViewData = findRootView(data);
-                        const id = rootViewData?.props.media_owner_id || rootViewData?.props.id;
-                        const item = stories_reels_media_data.get(id);
-                        if (item) {
-                            handleMedia(item, mediaIndex);
-                            return;
-                        }
-                    }
-                } catch {
-                }
-            }
+    const handleMedia = (item: Stories.ReelsMedum, mediaIndex: number) => {
+      const media = item.items[mediaIndex];
+      if (!media) return false;
+      if (fromUnixSeconds(media.expiring_at).getTime() < Date.now()) {
+        return false;
+      }
+      const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+      const final = (obj: any) => {
+        if (target.className.includes("download-btn")) {
+          downloadResource({ ...obj, type: MediaType.Story });
         } else {
-            const mediaId = pathnameArr.at(-1)!;
+          openInNewTab(obj.url);
+        }
+      };
+      // No index: each story carries its own taken_at, so timestamps
+      // already differ between items in the tray.
+      final({
+        url: url,
+        username: item.user.username,
+        datetime: fromUnixSeconds(media.taken_at),
+        id: item.id,
+      });
+      return true;
+    };
 
-            for (const item of stories_reels_media_data.values()) {
-                for (let i = 0; i < item.items.length; i++) {
-                    if (item.items[i].pk === mediaId) {
-                        const result = handleMedia(item, i);
-                        if (result) return;
-                    }
-                }
-            }
+    const { stories_reels_media, stories_user_ids, reels_media } = await chrome.storage.local.get([
+      "stories_reels_media",
+      "stories_user_ids",
+      "reels_media",
+    ]);
 
-            for (const script of window.document.scripts) {
-                try {
-                    const innerHTML = script.innerHTML;
-                    const data = JSON.parse(innerHTML);
-                    if (innerHTML.includes('xdt_api__v1__feed__reels_media')) {
-                        const res = findStories(data);
-                        if (res) {
-                            handleMedia(
-                                res.reels_media[0],
-                                res.reels_media[0].items.findIndex((i) => i.pk === mediaId)
-                            );
-                            return;
-                        }
-                    }
-                } catch {
-                }
-            }
+    const stories_reels_media_data: Map<string, Stories.ReelsMedum> = new Map(
+      stories_reels_media || [],
+    );
 
-            const item = (reels_media || []).find((i: ReelsMedia.ReelsMedum) => i.media_ids?.includes(mediaId));
-            if (item) {
-                handleMedia(item, item.media_ids.indexOf(mediaId));
+    // no media_id in url
+    if (pathnameArr.length === 2) {
+      let mediaIndex = 0;
+      const steps = target.parentElement!.firstElementChild!.querySelectorAll(":scope>div");
+      // multiple media, find the media index
+      if (steps.length > 1) {
+        steps.forEach((item, index) => {
+          if (item.childNodes.length === 1) {
+            mediaIndex = index;
+          }
+        });
+      }
+
+      // when open the page from an empty tab, data return with html but not xhr
+      if (window.history.length <= 2) {
+        for (const script of window.document.scripts) {
+          try {
+            const innerHTML = script.innerHTML;
+            const data = JSON.parse(innerHTML);
+            if (innerHTML.includes("xdt_api__v1__feed__reels_media")) {
+              const res = findStories(data);
+              if (res) {
+                handleMedia(res.reels_media[0], mediaIndex);
                 return;
+              }
             }
-            const sectionNode = getParentSectionNode(target);
-            if (!sectionNode) return;
-            const url = await storyGetUrl(target, sectionNode);
-            if (url) {
-                const postTime = sectionNode.querySelector('time')?.getAttribute('datetime');
-                if (target.className.includes('download-btn')) {
-                    downloadResource({
-                        url: url,
-                        username: posterName,
-                        datetime: postTime,
-                        id: getMediaName(url),
-                        type: MediaType.Story,
-                    });
-                } else {
-                    openInNewTab(url);
-                }
-            }
+          } catch {}
         }
+      }
+
+      const user_id = new Map(stories_user_ids || []).get(posterName);
+      if (typeof user_id === "string") {
+        const item = stories_reels_media_data.get(user_id);
+        if (item && steps.length === item.items.length) {
+          const result = handleMedia(item, mediaIndex);
+          if (result) return;
+        }
+      }
+
+      for (const script of window.document.scripts) {
+        try {
+          const innerHTML = script.innerHTML;
+          const data = JSON.parse(innerHTML);
+          if (innerHTML.includes("rootView")) {
+            const rootViewData = findRootView(data);
+            const id = rootViewData?.props.media_owner_id || rootViewData?.props.id;
+            const item = stories_reels_media_data.get(id);
+            if (item) {
+              handleMedia(item, mediaIndex);
+              return;
+            }
+          }
+        } catch {}
+      }
+    } else {
+      const mediaId = pathnameArr.at(-1)!;
+
+      for (const item of stories_reels_media_data.values()) {
+        for (let i = 0; i < item.items.length; i++) {
+          if (item.items[i].pk === mediaId) {
+            const result = handleMedia(item, i);
+            if (result) return;
+          }
+        }
+      }
+
+      for (const script of window.document.scripts) {
+        try {
+          const innerHTML = script.innerHTML;
+          const data = JSON.parse(innerHTML);
+          if (innerHTML.includes("xdt_api__v1__feed__reels_media")) {
+            const res = findStories(data);
+            if (res) {
+              handleMedia(
+                res.reels_media[0],
+                res.reels_media[0].items.findIndex((i) => i.pk === mediaId),
+              );
+              return;
+            }
+          }
+        } catch {}
+      }
+
+      const item = (reels_media || []).find((i: ReelsMedia.ReelsMedum) =>
+        i.media_ids?.includes(mediaId),
+      );
+      if (item) {
+        handleMedia(item, item.media_ids.indexOf(mediaId));
+        return;
+      }
+      const sectionNode = getParentSectionNode(target);
+      if (!sectionNode) return;
+      const url = await storyGetUrl(target, sectionNode);
+      if (url) {
+        const postTime = sectionNode.querySelector("time")?.getAttribute("datetime");
+        if (target.className.includes("download-btn")) {
+          downloadResource({
+            url: url,
+            username: posterName,
+            datetime: postTime,
+            id: getMediaName(url),
+            type: MediaType.Story,
+          });
+        } else {
+          openInNewTab(url);
+        }
+      }
+    }
+  }
+
+  private handleVideo(wrapperDiv: Element) {
+    if (!storageCache.settings.setting_enable_video_controls) {
+      return;
     }
 
-    private handleVideo(wrapperDiv: Element) {
-        if (!storageCache.settings.setting_enable_video_controls) {
-            return
-        }
-
-        const videos = wrapperDiv.querySelectorAll('video');
-        for (let i = 0; i < videos.length; i++) {
-            const videoPlayerMaskDiv = videos[i].closest("section")?.querySelector('div[role="group"]')
-            if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-                handleVideoMaskClip(videoPlayerMaskDiv, videos[i], {
-                    onVolumeChange: handleStoriesVideoVolumeChange,
-                    bottomDiv: wrapperDiv.querySelector(shareIconSelector)?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode,
-                })
-            }
-        }
+    const videos = wrapperDiv.querySelectorAll("video");
+    for (let i = 0; i < videos.length; i++) {
+      const videoPlayerMaskDiv = videos[i].closest("section")?.querySelector('div[role="group"]');
+      if (videoPlayerMaskDiv instanceof HTMLDivElement) {
+        handleVideoMaskClip(videoPlayerMaskDiv, videos[i], {
+          onVolumeChange: handleStoriesVideoVolumeChange,
+          bottomDiv:
+            wrapperDiv.querySelector(shareIconSelector)?.parentNode?.parentNode?.parentNode
+              ?.parentNode?.parentNode?.parentNode,
+        });
+      }
     }
+  }
 }

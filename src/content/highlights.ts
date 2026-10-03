@@ -1,141 +1,155 @@
-import { checkType, downloadResource, openInNewTab } from './utils/fn';
-import { fromUnixSeconds, DownloadParams, getMediaName } from './utils/filename';
-import type { Highlight } from '../types/highlights';
-import type { ReelsMedia } from '../types/global';
+import { checkType, downloadResource, openInNewTab } from "./utils/fn";
+import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
+import type { Highlight } from "../types/highlights";
+import type { ReelsMedia } from "../types/global";
 import { MediaType } from "../constants";
 import { getParentSectionNode } from "./utils/dom";
 
-function findHighlight(obj: Record<string, any>): Highlight.XdtApiV1FeedReelsMediaConnection | undefined {
-    for (const key in obj) {
-        if (key === 'xdt_api__v1__feed__reels_media__connection') {
-            return obj[key];
-        } else if (typeof obj[key] === 'object' && obj[key] !== null) {
-            const result = findHighlight(obj[key]);
-            if (result) {
-                return result;
-            }
-        }
+function findHighlight(
+  obj: Record<string, any>,
+): Highlight.XdtApiV1FeedReelsMediaConnection | undefined {
+  for (const key in obj) {
+    if (key === "xdt_api__v1__feed__reels_media__connection") {
+      return obj[key];
+    } else if (typeof obj[key] === "object" && obj[key] !== null) {
+      const result = findHighlight(obj[key]);
+      if (result) {
+        return result;
+      }
     }
+  }
 }
 
-export async function highlightsOnClicked(target: HTMLAnchorElement, containerNode: Element | null) {
-    const sectionNode = getParentSectionNode(target) || containerNode;
-    if (!sectionNode) {
-        console.warn("cannot find section node");
-        return;
-    }
-    const pathname = window.location.pathname; // "/stories/highlights/18023929792378379/"
-    const pathnameArr = pathname.split('/');
+export async function highlightsOnClicked(
+  target: HTMLAnchorElement,
+  containerNode: Element | null,
+) {
+  const sectionNode = getParentSectionNode(target) || containerNode;
+  if (!sectionNode) {
+    console.warn("cannot find section node");
+    return;
+  }
+  const pathname = window.location.pathname; // "/stories/highlights/18023929792378379/"
+  const pathnameArr = pathname.split("/");
 
-    const final = (url: string, filenameObj?: Omit<DownloadParams, 'url' | 'type'>) => {
-        if (target.className.includes('download-btn')) {
-            if (filenameObj) {
-                downloadResource({
-                    url: url,
-                    ...filenameObj,
-                    type: MediaType.Highlight,
-                });
-            } else {
-                let posterName = 'highlights';
-                for (const item of sectionNode.querySelectorAll('a[role=link]')) {
-                    const hrefArr = item
-                        .getAttribute('href')
-                        ?.split('/')
-                        .filter((_) => _);
-                    // A single remaining segment means a profile link such as
-                    // "/username/", so the name is index 0. This read index 1,
-                    // which is always undefined for a length-1 array, so it
-                    // overwrote the default with undefined and broke out.
-                    if (hrefArr?.length === 1) {
-                        posterName = hrefArr[0];
-                        break;
-                    }
-                }
-                const postTime = [...sectionNode.querySelectorAll('time')].find((i) => i.classList.length !== 0)
-                    ?.getAttribute('datetime');
-                downloadResource({
-                    url: url,
-                    username: posterName,
-                    datetime: postTime,
-                    id: getMediaName(url),
-                    type: MediaType.Highlight,
-                });
-            }
-        } else {
-            openInNewTab(url);
-        }
-    };
-
-    let mediaIndex = 0;
-
-    const handleMedias = (data: Highlight.Node) => {
-        const media = data.items[mediaIndex];
-        const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
-        // No index: each highlight item carries its own taken_at, so their
-        // timestamps already differ.
-        final(url, {
-            username: data.user.username,
-            datetime: fromUnixSeconds(media.taken_at),
-            id: data.id,
+  const final = (url: string, filenameObj?: Omit<DownloadParams, "url" | "type">) => {
+    if (target.className.includes("download-btn")) {
+      if (filenameObj) {
+        downloadResource({
+          url: url,
+          ...filenameObj,
+          type: MediaType.Highlight,
         });
-    };
-
-    target.parentElement?.firstElementChild?.querySelectorAll(':scope>div').forEach((i, idx) => {
-        if (i.childNodes.length === 1) {
-            mediaIndex = idx;
+      } else {
+        let posterName = "highlights";
+        for (const item of sectionNode.querySelectorAll("a[role=link]")) {
+          const hrefArr = item
+            .getAttribute("href")
+            ?.split("/")
+            .filter((_) => _);
+          // A single remaining segment means a profile link such as
+          // "/username/", so the name is index 0. This read index 1,
+          // which is always undefined for a length-1 array, so it
+          // overwrote the default with undefined and broke out.
+          if (hrefArr?.length === 1) {
+            posterName = hrefArr[0];
+            break;
+          }
         }
+        const postTime = [...sectionNode.querySelectorAll("time")]
+          .find((i) => i.classList.length !== 0)
+          ?.getAttribute("datetime");
+        downloadResource({
+          url: url,
+          username: posterName,
+          datetime: postTime,
+          id: getMediaName(url),
+          type: MediaType.Highlight,
+        });
+      }
+    } else {
+      openInNewTab(url);
+    }
+  };
+
+  let mediaIndex = 0;
+
+  const handleMedias = (data: Highlight.Node) => {
+    const media = data.items[mediaIndex];
+    const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+    // No index: each highlight item carries its own taken_at, so their
+    // timestamps already differ.
+    final(url, {
+      username: data.user.username,
+      datetime: fromUnixSeconds(media.taken_at),
+      id: data.id,
     });
+  };
 
-    const { reels_media, highlights_data } = await chrome.storage.local.get(['reels_media', 'highlights_data']);
-
-    //  profile page highlight on Android
-    if (checkType() === 'android') {
-        const itemOnAndroid = (reels_media || []).find((i: ReelsMedia.ReelsMedum) => i.id === 'highlight:' + pathnameArr[3]);
-        if (itemOnAndroid) {
-            handleMedias(itemOnAndroid);
-            return;
-        }
-        for (const item of sectionNode.querySelectorAll<HTMLImageElement>('img')) {
-            if (item.srcset !== '') {
-                final(item.src);
-                return;
-            }
-        }
+  target.parentElement?.firstElementChild?.querySelectorAll(":scope>div").forEach((i, idx) => {
+    if (i.childNodes.length === 1) {
+      mediaIndex = idx;
     }
+  });
 
-    const localData = new Map(highlights_data || []).get('highlight:' + pathnameArr[3]) as Highlight.Node | undefined;
-    if (localData) {
-        handleMedias(localData);
+  const { reels_media, highlights_data } = await chrome.storage.local.get([
+    "reels_media",
+    "highlights_data",
+  ]);
+
+  //  profile page highlight on Android
+  if (checkType() === "android") {
+    const itemOnAndroid = (reels_media || []).find(
+      (i: ReelsMedia.ReelsMedum) => i.id === "highlight:" + pathnameArr[3],
+    );
+    if (itemOnAndroid) {
+      handleMedias(itemOnAndroid);
+      return;
+    }
+    for (const item of sectionNode.querySelectorAll<HTMLImageElement>("img")) {
+      if (item.srcset !== "") {
+        final(item.src);
         return;
+      }
     }
+  }
 
-    for (const script of window.document.scripts) {
-        try {
-            const innerHTML = script.innerHTML;
-            const data = JSON.parse(innerHTML);
-            if (innerHTML.includes('xdt_api__v1__feed__reels_media__connection')) {
-                const res = findHighlight(data);
-                if (res) {
-                    handleMedias(res.edges[0].node);
-                    return;
-                }
-            }
-        } catch {
+  const localData = new Map(highlights_data || []).get("highlight:" + pathnameArr[3]) as
+    | Highlight.Node
+    | undefined;
+  if (localData) {
+    handleMedias(localData);
+    return;
+  }
+
+  for (const script of window.document.scripts) {
+    try {
+      const innerHTML = script.innerHTML;
+      const data = JSON.parse(innerHTML);
+      if (innerHTML.includes("xdt_api__v1__feed__reels_media__connection")) {
+        const res = findHighlight(data);
+        if (res) {
+          handleMedias(res.edges[0].node);
+          return;
         }
-    }
+      }
+    } catch {}
+  }
 
-    const videoUrl = sectionNode.querySelector('video')?.getAttribute('src');
-    if (videoUrl) {
-        final(videoUrl);
-        return;
-    }
+  const videoUrl = sectionNode.querySelector("video")?.getAttribute("src");
+  if (videoUrl) {
+    final(videoUrl);
+    return;
+  }
 
-    for (const item of sectionNode.querySelectorAll<HTMLImageElement>('img[referrerpolicy="origin-when-cross-origin"]')) {
-        if (item.classList.length > 1) {
-            final(item.src);
-            return;
-        }
+  for (const item of sectionNode.querySelectorAll<HTMLImageElement>(
+    'img[referrerpolicy="origin-when-cross-origin"]',
+  )) {
+    if (item.classList.length > 1) {
+      final(item.src);
+      return;
     }
+  }
 
-    alert('download highlights failed!');
+  alert("download highlights failed!");
 }

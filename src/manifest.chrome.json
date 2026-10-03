@@ -20,52 +20,29 @@
     "default_title": "Instagram Downloader",
     "default_popup": "popup/index.html"
   },
-  "permissions": [
-    "storage",
-    "unlimitedStorage",
-    "downloads"
-  ],
+  "permissions": ["storage", "unlimitedStorage", "downloads"],
   "background": {
     "service_worker": "background/chrome.js",
     "type": "module"
   },
   "content_scripts": [
     {
-      "js": [
-        "content/loader.js"
-      ],
-      "matches": [
-        "https://www.instagram.com/*",
-        "https://www.threads.com/*"
-      ]
+      "js": ["content/loader.js"],
+      "matches": ["https://www.instagram.com/*", "https://www.threads.com/*"]
     },
     {
-      "matches": [
-        "https://www.instagram.com/*",
-        "https://www.threads.com/*"
-      ],
-      "js": [
-        "inject.js"
-      ],
+      "matches": ["https://www.instagram.com/*", "https://www.threads.com/*"],
+      "js": ["inject.js"],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "*.js",
-        "content/*.js"
-      ],
-      "matches": [
-        "https://www.instagram.com/*",
-        "https://www.threads.com/*"
-      ]
+      "resources": ["*.js", "content/*.js"],
+      "matches": ["https://www.instagram.com/*", "https://www.threads.com/*"]
     }
   ],
   "externally_connectable": {
-    "matches": [
-      "https://www.instagram.com/*",
-      "https://www.threads.com/*"
-    ]
+    "matches": ["https://www.instagram.com/*", "https://www.threads.com/*"]
   }
 }

@@ -1,35 +1,35 @@
-import './index.scss';
+import "./index.scss";
 
 const PERMISSIONS = {
-   origins: ['https://www.instagram.com/*', 'https://www.threads.com/*'],
+  origins: ["https://www.instagram.com/*", "https://www.threads.com/*"],
 };
-const PERMS_DECLINED_MESSAGE = 'Permission request was declined.\nPlease try again.';
+const PERMS_DECLINED_MESSAGE = "Permission request was declined.\nPlease try again.";
 
-const permissionRequestButtons = document.getElementsByClassName('permissions-request');
+const permissionRequestButtons = document.getElementsByClassName("permissions-request");
 
 for (const elem of permissionRequestButtons) {
-   elem.addEventListener('click', permissionsRequest);
+  elem.addEventListener("click", permissionsRequest);
 }
 
 async function permissionsRequest(event: any) {
-   event.stopPropagation();
-   const result = await browser.permissions.request(PERMISSIONS);
+  event.stopPropagation();
+  const result = await browser.permissions.request(PERMISSIONS);
 
-   if (result) {
-      document.body.classList.add('permissions-granted');
-   } else {
-      window.alert(PERMS_DECLINED_MESSAGE);
-   }
+  if (result) {
+    document.body.classList.add("permissions-granted");
+  } else {
+    window.alert(PERMS_DECLINED_MESSAGE);
+  }
 }
 
 async function setupSettingsUI() {
-   const hasPermissions = await browser.permissions.contains(PERMISSIONS);
+  const hasPermissions = await browser.permissions.contains(PERMISSIONS);
 
-   if (hasPermissions) {
-      document.body.classList.add('permissions-granted');
-   } else {
-      document.body.classList.remove('permissions-granted');
-   }
+  if (hasPermissions) {
+    document.body.classList.add("permissions-granted");
+  } else {
+    document.body.classList.remove("permissions-granted");
+  }
 }
 
 setupSettingsUI();

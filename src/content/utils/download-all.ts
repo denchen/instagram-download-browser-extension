@@ -23,37 +23,37 @@ import { downloadResource, getDataFromAPI, getImgOrVideoUrl } from "./fn";
  * create the @username/ directory.
  */
 export async function handleDownloadAll(articleNode: HTMLElement) {
-    const data = await getDataFromAPI(articleNode);
-    if (!data) {
-        console.warn('Could not read this post from the media API, so there is nothing to download.');
-        return;
-    }
+  const data = await getDataFromAPI(articleNode);
+  if (!data) {
+    console.warn("Could not read this post from the media API, so there is nothing to download.");
+    return;
+  }
 
-    // The button shows on every post, not only carousels, so a single-media
-    // post downloads its one item rather than doing nothing. Same result as the
-    // plain download button.
-    if (!('carousel_media' in data)) {
-        await downloadResource({
-            url: getImgOrVideoUrl(data),
-            username: data.owner?.username,
-            datetime: fromUnixSeconds(data.taken_at),
-            type: MediaType.Post,
-        });
-        return;
-    }
+  // The button shows on every post, not only carousels, so a single-media
+  // post downloads its one item rather than doing nothing. Same result as the
+  // plain download button.
+  if (!("carousel_media" in data)) {
+    await downloadResource({
+      url: getImgOrVideoUrl(data),
+      username: data.owner?.username,
+      datetime: fromUnixSeconds(data.taken_at),
+      type: MediaType.Post,
+    });
+    return;
+  }
 
-    // Per-slide metadata matches what the zip derived, so the filenames are
-    // exactly what it used to write *inside* the archive: `index` supplies the
-    // zero-padded ordinal that keeps slides distinct when they share the post's
-    // timestamp, which carousel items normally do.
-    for (let i = 0; i < data.carousel_media.length; i++) {
-        const resource = data.carousel_media[i];
-        await downloadResource({
-            url: getImgOrVideoUrl(resource),
-            username: resource.owner?.username || data.owner?.username,
-            datetime: fromUnixSeconds(resource.taken_at ?? data.taken_at),
-            index: i + 1,
-            type: MediaType.Post,
-        });
-    }
+  // Per-slide metadata matches what the zip derived, so the filenames are
+  // exactly what it used to write *inside* the archive: `index` supplies the
+  // zero-padded ordinal that keeps slides distinct when they share the post's
+  // timestamp, which carousel items normally do.
+  for (let i = 0; i < data.carousel_media.length; i++) {
+    const resource = data.carousel_media[i];
+    await downloadResource({
+      url: getImgOrVideoUrl(resource),
+      username: resource.owner?.username || data.owner?.username,
+      datetime: fromUnixSeconds(resource.taken_at ?? data.taken_at),
+      index: i + 1,
+      type: MediaType.Post,
+    });
+  }
 }

@@ -1,26 +1,26 @@
 {
-   "compilerOptions": {
-      "strict": true,
-      "module": "preserve",
-      "noEmit": true,
-      "target": "ESNext",
-      "lib": ["es2022", "dom", "dom.iterable"],
-      "moduleResolution": "bundler",
-      //  "sourceMap": true,
-      // "rootDir": "./src",
-      "jsx": "react-jsx",
-      "jsxImportSource": "preact",
-      "paths": {
-         "react": ["./node_modules/preact/compat"],
-         "react-dom": ["./node_modules/preact/compat"],
-         "react-dom/*": ["./node_modules/preact/compat/*"],
-         "react/jsx-runtime": ["./node_modules/preact/jsx-runtime"]
-      },
-      "noEmitOnError": true,
-      "allowJs": true,
-      "skipLibCheck": true,
-      "allowSyntheticDefaultImports": true,
-      "types": ["chrome-types", "firefox-webext-browser"]
-   },
-   "exclude": ["node_modules", "public", "dist", "./src/*.js", "*.js"]
+  "compilerOptions": {
+    "strict": true,
+    "module": "preserve",
+    "noEmit": true,
+    "target": "ESNext",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "moduleResolution": "bundler",
+    //  "sourceMap": true,
+    // "rootDir": "./src",
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "paths": {
+      "react": ["./node_modules/preact/compat"],
+      "react-dom": ["./node_modules/preact/compat"],
+      "react-dom/*": ["./node_modules/preact/compat/*"],
+      "react/jsx-runtime": ["./node_modules/preact/jsx-runtime"]
+    },
+    "noEmitOnError": true,
+    "allowJs": true,
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "types": ["chrome-types", "firefox-webext-browser"]
+  },
+  "exclude": ["node_modules", "public", "dist", "./src/*.js", "*.js"]
 }

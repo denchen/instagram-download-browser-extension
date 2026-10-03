@@ -30,16 +30,19 @@ or [Firefox](https://addons.mozilla.org/addon/ins-downloader/)
 This project uses [pnpm](https://pnpm.io/) and [esbuild](https://esbuild.github.io/) for development, and needs Node 24 or newer. `.nvmrc` pins the version used day to day.
 
 1. Install dependencies:
+
    ```bash
    pnpm install
    ```
 
 2. Build for Chrome:
+
    ```bash
    pnpm run build:chrome
    ```
 
 3. Build for Firefox:
+
    ```bash
    pnpm run build:ff
    ```

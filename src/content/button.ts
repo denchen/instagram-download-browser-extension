@@ -1,7 +1,7 @@
-import { CLASS_CUSTOM_BUTTON, MediaType } from '../constants';
-import type { IconClassName, IconColor } from '../types/global';
-import { checkType, downloadResource } from './utils/fn';
-import { storageCache } from './utils/storage';
+import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
+import type { IconClassName, IconColor } from "../types/global";
+import { checkType, downloadResource } from "./utils/fn";
+import { storageCache } from "./utils/storage";
 
 const svgDownloadBtn = `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" height="20" width="20"
 viewBox="0 0 477.867 477.867" fill="currentColor" xml:space="preserve">
@@ -30,83 +30,91 @@ const svgDownloadAllBtn = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 
 </svg>`;
 
 function createCustomBtn(svg: string, iconColor: IconColor, className: IconClassName) {
-    const newBtn = document.createElement('a');
-    newBtn.innerHTML = svg;
-    newBtn.className = CLASS_CUSTOM_BUTTON + ' ' + className;
-    newBtn.setAttribute('style', `cursor: pointer;padding:8px;z-index: 0;display:inline-flex;color:${iconColor}`);
-    newBtn.addEventListener('mouseenter', () => {
-        newBtn.style.setProperty('filter', 'drop-shadow(0px 0px 10px deepskyblue)');
-    });
-    newBtn.addEventListener('mouseleave', () => {
-        newBtn.style.removeProperty('filter');
-    });
-    switch (className) {
-        case 'newtab-btn':
-            newBtn.setAttribute('title', 'Open In New Tab');
-            newBtn.setAttribute('target', '_blank');
-            newBtn.setAttribute('rel', 'noopener,noreferrer');
-            break;
-        case "download-btn":
-            newBtn.setAttribute('title', 'Download');
-            break;
-        case "download-all-btn":
-            newBtn.setAttribute('title', 'Download All');
-            break;
-    }
-    return newBtn;
+  const newBtn = document.createElement("a");
+  newBtn.innerHTML = svg;
+  newBtn.className = CLASS_CUSTOM_BUTTON + " " + className;
+  newBtn.setAttribute(
+    "style",
+    `cursor: pointer;padding:8px;z-index: 0;display:inline-flex;color:${iconColor}`,
+  );
+  newBtn.addEventListener("mouseenter", () => {
+    newBtn.style.setProperty("filter", "drop-shadow(0px 0px 10px deepskyblue)");
+  });
+  newBtn.addEventListener("mouseleave", () => {
+    newBtn.style.removeProperty("filter");
+  });
+  switch (className) {
+    case "newtab-btn":
+      newBtn.setAttribute("title", "Open In New Tab");
+      newBtn.setAttribute("target", "_blank");
+      newBtn.setAttribute("rel", "noopener,noreferrer");
+      break;
+    case "download-btn":
+      newBtn.setAttribute("title", "Download");
+      break;
+    case "download-all-btn":
+      newBtn.setAttribute("title", "Download All");
+      break;
+  }
+  return newBtn;
 }
 
-export function addCustomBtn(node: any, iconColor: IconColor, position: 'before' | 'after' = 'after') {
-    const { setting_show_open_in_new_tab_icon, setting_show_download_all_icon } = storageCache.settings;
-    const downloadBtn = createCustomBtn(svgDownloadBtn, iconColor, 'download-btn');
-    let newtabBtn, downloadAllBtn;
-    if (!(checkType() !== 'pc' && window.location.pathname.startsWith('/stories/'))) {
-        if (setting_show_open_in_new_tab_icon) {
-            newtabBtn = createCustomBtn(svgNewtabBtn, iconColor, 'newtab-btn');
-        }
+export function addCustomBtn(
+  node: any,
+  iconColor: IconColor,
+  position: "before" | "after" = "after",
+) {
+  const { setting_show_open_in_new_tab_icon, setting_show_download_all_icon } =
+    storageCache.settings;
+  const downloadBtn = createCustomBtn(svgDownloadBtn, iconColor, "download-btn");
+  let newtabBtn, downloadAllBtn;
+  if (!(checkType() !== "pc" && window.location.pathname.startsWith("/stories/"))) {
+    if (setting_show_open_in_new_tab_icon) {
+      newtabBtn = createCustomBtn(svgNewtabBtn, iconColor, "newtab-btn");
     }
-    if (
-        checkType() === 'pc' &&
-        setting_show_download_all_icon &&
-        window.location.host === 'www.instagram.com' &&
-        !window.location.pathname.startsWith('/reel') &&
-        !window.location.pathname.startsWith('/stories/')
-    ) {
-        downloadAllBtn = createCustomBtn(svgDownloadAllBtn, iconColor, 'download-all-btn');
+  }
+  if (
+    checkType() === "pc" &&
+    setting_show_download_all_icon &&
+    window.location.host === "www.instagram.com" &&
+    !window.location.pathname.startsWith("/reel") &&
+    !window.location.pathname.startsWith("/stories/")
+  ) {
+    downloadAllBtn = createCustomBtn(svgDownloadAllBtn, iconColor, "download-all-btn");
+  }
+  if (position === "before") {
+    if (newtabBtn) {
+      node.insertBefore(newtabBtn, node.firstChild);
     }
-    if (position === 'before') {
-        if (newtabBtn) {
-            node.insertBefore(newtabBtn, node.firstChild);
-        }
-        node.insertBefore(downloadBtn, node.firstChild);
-        if (downloadAllBtn) {
-            node.insertBefore(downloadAllBtn, node.firstChild);
-        }
-    } else {
-        if (newtabBtn) {
-            node.appendChild(newtabBtn);
-        }
-        node.appendChild(downloadBtn);
-        if (downloadAllBtn) {
-            node.appendChild(downloadAllBtn);
-        }
+    node.insertBefore(downloadBtn, node.firstChild);
+    if (downloadAllBtn) {
+      node.insertBefore(downloadAllBtn, node.firstChild);
     }
+  } else {
+    if (newtabBtn) {
+      node.appendChild(newtabBtn);
+    }
+    node.appendChild(downloadBtn);
+    if (downloadAllBtn) {
+      node.appendChild(downloadAllBtn);
+    }
+  }
 }
 
 export function addVideoDownloadCoverBtn(node: HTMLDivElement) {
-    const newBtn = document.createElement('a');
-    newBtn.innerHTML = svgDownloadBtn;
-    newBtn.className = CLASS_CUSTOM_BUTTON;
-    newBtn.setAttribute('style', 'cursor: pointer;position:absolute;left:4px;top:4px;color:white');
-    newBtn.setAttribute('title', 'Download Video Cover');
-    newBtn.dataset.videoCoverDownload = "true";
-    newBtn.addEventListener('mouseenter', () => {
-        newBtn.style.setProperty('scale', '1.1');
-    });
-    newBtn.addEventListener('mouseleave', () => {
-        newBtn.style.removeProperty('scale');
-    });
-    node.appendChild(newBtn);
+  const newBtn = document.createElement("a");
+  newBtn.innerHTML = svgDownloadBtn;
+  newBtn.className = CLASS_CUSTOM_BUTTON;
+  newBtn.setAttribute("style", "cursor: pointer;position:absolute;left:4px;top:4px;color:white");
+  newBtn.setAttribute("title", "Download Video Cover");
+  newBtn.dataset.videoCoverDownload = "true";
+  newBtn.addEventListener("mouseenter", () => {
+    newBtn.style.setProperty("scale", "1.1");
+  });
+  newBtn.addEventListener("mouseleave", () => {
+    newBtn.style.removeProperty("scale");
+  });
+  node.appendChild(newBtn);
 }
 
 /**
@@ -129,37 +137,37 @@ export function addVideoDownloadCoverBtn(node: HTMLDivElement) {
  * meaningful.
  */
 export function handleVideoCoverDownloadBtn(node: HTMLElement) {
-    // `/<username>/` and `/<username>/reels/` show the page owner's own media,
-    // so the first segment is the author. `/<username>/tagged/` does NOT — those
-    // posts belong to whoever tagged them — and a tile's DOM carries no author,
-    // so that case deliberately passes no username and files under `@unknown/`
-    // rather than misfiling someone else's cover under the page owner. Folders
-    // are the author, never the page browsed; see getUserFolder.
-    const segments = window.location.pathname.split('/').filter((e) => e);
-    const username = segments[1] === 'tagged' ? undefined : segments[0];
-    if (window.location.pathname.split('/')[2] === 'reels') {
-        const bgEl = node.querySelector('[style*="background-image"]');
-        if (bgEl) {
-            const url = window
-                .getComputedStyle(bgEl)
-                .getPropertyValue('background-image')
-                .match(/url\((.*)\)/)?.[1];
-            if (url) {
-                downloadResource({
-                    url: JSON.parse(url),
-                    username,
-                    type: MediaType.Cover,
-                });
-            }
-        }
-    } else {
-        const imgSrc = node.querySelector('img')?.getAttribute('src');
-        if (imgSrc) {
-            downloadResource({
-                url: imgSrc,
-                username,
-                type: MediaType.Cover,
-            });
-        }
+  // `/<username>/` and `/<username>/reels/` show the page owner's own media,
+  // so the first segment is the author. `/<username>/tagged/` does NOT — those
+  // posts belong to whoever tagged them — and a tile's DOM carries no author,
+  // so that case deliberately passes no username and files under `@unknown/`
+  // rather than misfiling someone else's cover under the page owner. Folders
+  // are the author, never the page browsed; see getUserFolder.
+  const segments = window.location.pathname.split("/").filter((e) => e);
+  const username = segments[1] === "tagged" ? undefined : segments[0];
+  if (window.location.pathname.split("/")[2] === "reels") {
+    const bgEl = node.querySelector('[style*="background-image"]');
+    if (bgEl) {
+      const url = window
+        .getComputedStyle(bgEl)
+        .getPropertyValue("background-image")
+        .match(/url\((.*)\)/)?.[1];
+      if (url) {
+        downloadResource({
+          url: JSON.parse(url),
+          username,
+          type: MediaType.Cover,
+        });
+      }
     }
+  } else {
+    const imgSrc = node.querySelector("img")?.getAttribute("src");
+    if (imgSrc) {
+      downloadResource({
+        url: imgSrc,
+        username,
+        type: MediaType.Cover,
+      });
+    }
+  }
 }
