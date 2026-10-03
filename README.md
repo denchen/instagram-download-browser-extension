@@ -29,7 +29,7 @@ pnpm run build:chrome
 2. Turn on **Developer mode** (top right)
 3. **Load unpacked**, and select `dist/chrome` — the subdirectory, not the repo root
 
-Chrome stores the *path*, not a copy, so keep the repository where it is. Moving or deleting it
+Chrome stores the _path_, not a copy, so keep the repository where it is. Moving or deleting it
 breaks the installed extension.
 
 After a rebuild, click the ↻ icon on the extension's card, then reload any open Instagram tab —
