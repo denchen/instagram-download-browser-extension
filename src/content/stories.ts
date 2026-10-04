@@ -3,6 +3,7 @@ import { fromUnixSeconds, getMediaName } from "./utils/filename";
 import type { Stories } from "../types/stories";
 import type { ReelsMedia } from "../types/global";
 import { getParentSectionNode } from "./utils/dom";
+import { getImgOrVideoUrl } from "./utils/media";
 import { CLASS_CUSTOM_BUTTON, MediaType, shareIconSelector } from "../constants";
 import { storageCache } from "./utils/storage";
 import { handleStoriesVideoVolumeChange, handleVideoMaskClip } from "./utils/video";
@@ -113,7 +114,7 @@ export class StoriesPageHandler implements PageHandler {
       if (fromUnixSeconds(media.expiring_at).getTime() < Date.now()) {
         return false;
       }
-      const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+      const url = getImgOrVideoUrl(media);
       const final = (obj: any) => {
         if (target.className.includes("download-btn")) {
           void downloadResource({ ...obj, type: MediaType.Story });

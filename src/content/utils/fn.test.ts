@@ -195,6 +195,16 @@ describe("downloadResource", () => {
     );
   });
 
+  it("refuses a payload with no media URL instead of throwing on it", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    await fn.downloadResource({ url: undefined as any, username: "groot" });
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining("No media URL to download"),
+      expect.anything(),
+    );
+  });
+
   it("files a download with no username under @unknown/ and says why", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await fn.downloadResource({ url: URL_JPG, datetime: fromUnixSeconds(TAKEN_AT) });

@@ -1,5 +1,6 @@
 import { downloadResource, openInNewTab } from "../utils/fn";
 import { fromUnixSeconds, getMediaName } from "../utils/filename";
+import { getImgOrVideoUrl } from "../utils/media";
 import { MediaType } from "../../constants";
 
 function findFeedDataEdges(obj: Record<string, any>): Array<Record<string, any>> | null {
@@ -32,8 +33,7 @@ function findFeedDataEdges(obj: Record<string, any>): Array<Record<string, any>>
 }
 
 function handleMedia(post: any, action: "download" | "open") {
-  const { giphy_media_info, carousel_media, image_versions2, video_versions, text_post_app_info } =
-    post;
+  const { giphy_media_info, carousel_media, text_post_app_info } = post;
   const final = (obj: any) => {
     if (action === "download") {
       void downloadResource({ ...obj, type: MediaType.Threads });
@@ -53,7 +53,7 @@ function handleMedia(post: any, action: "download" | "open") {
   }
   if (Array.isArray(carousel_media) && carousel_media.length > 0) {
     carousel_media.forEach((item: any) => {
-      const url = item.video_versions?.[0]?.url || item.image_versions2?.candidates?.[0]?.url;
+      const url = getImgOrVideoUrl(item);
       if (!url) return;
       final({
         url: url,
@@ -63,7 +63,7 @@ function handleMedia(post: any, action: "download" | "open") {
       });
     });
   } else {
-    const url = video_versions?.[0]?.url || image_versions2?.candidates?.[0]?.url;
+    const url = getImgOrVideoUrl(post);
     if (url) {
       final({
         url: url,
@@ -84,8 +84,7 @@ function handleMedia(post: any, action: "download" | "open") {
         });
       } else if (data && Array.isArray(data.carousel_media)) {
         data.carousel_media.forEach((item: any) => {
-          const itemUrl =
-            item.video_versions?.[0]?.url || item.image_versions2?.candidates?.[0]?.url;
+          const itemUrl = getImgOrVideoUrl(item);
           if (!itemUrl) return;
           final({
             url: itemUrl,

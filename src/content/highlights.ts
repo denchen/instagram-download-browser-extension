@@ -4,6 +4,7 @@ import type { Highlight } from "../types/highlights";
 import type { ReelsMedia } from "../types/global";
 import { MediaType } from "../constants";
 import { getParentSectionNode } from "./utils/dom";
+import { getImgOrVideoUrl } from "./utils/media";
 
 function findHighlight(
   obj: Record<string, any>,
@@ -77,7 +78,7 @@ export async function highlightsOnClicked(
 
   const handleMedias = (data: Highlight.Node) => {
     const media = data.items[mediaIndex];
-    const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+    const url = getImgOrVideoUrl(media);
     // No index: each highlight item carries its own taken_at, so their
     // timestamps already differ.
     final(url, {
