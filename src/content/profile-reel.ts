@@ -1,6 +1,7 @@
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
 import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
 import { getCurrentStepFromDotsList } from "./utils/dom";
+import { getImgOrVideoUrl } from "./utils/media";
 import { ProfileReel } from "../types/profileReel";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from "../types/global";
@@ -163,7 +164,7 @@ export class ReelPageHandler implements PageHandler {
         | ProfileReel.Media
         | undefined;
       if (media) {
-        const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+        const url = getImgOrVideoUrl(media);
         const times = [
           ...(target.parentElement?.parentElement?.parentElement?.querySelectorAll("time") ?? []),
         ];
@@ -205,8 +206,7 @@ export class ReelPageHandler implements PageHandler {
             if (res) {
               for (const media of res.items) {
                 if (media.code === code) {
-                  const url =
-                    media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+                  const url = getImgOrVideoUrl(media);
                   final({
                     url: url,
                     username: media.user.username,

@@ -233,6 +233,19 @@ function downloadInPage(url: string, filename: string) {
 
 export async function downloadResource(params: DownloadParams) {
   const { url, username } = params;
+
+  // getImgOrVideoUrl returns undefined for an item carrying neither a video
+  // nor an image ladder. Every line below dereferences `url`, so without this
+  // the symptom is a TypeError from describeRendition or .startsWith - loud,
+  // but naming neither the cause nor the post it came from.
+  if (!url) {
+    console.error(
+      "No media URL to download: the payload held neither video_versions nor image_versions2.candidates.",
+      params,
+    );
+    return;
+  }
+
   console.log(`Downloading${describeRendition(url)}: ${url}`);
   const filename = getFilenameFromUrl(params);
 

@@ -6,6 +6,7 @@ import {
   openInNewTab,
 } from "./utils/fn";
 import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
+import { getImgOrVideoUrl } from "./utils/media";
 import type { Reels } from "../types/reels";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from "../types/global";
@@ -63,7 +64,7 @@ export class ReelsPageHandler implements PageHandler {
     };
 
     const handleMedia = (media: Reels.Media) => {
-      const url = media.video_versions?.[0].url || media.image_versions2.candidates[0].url;
+      const url = getImgOrVideoUrl(media);
       final({
         url: url,
         username: media.user.username,
