@@ -43,11 +43,20 @@ export function largestCandidate(candidates?: Record<string, any>[]) {
  * five threw; falling through is the one of the two that cannot crash, and the
  * file extension still shows what arrived.
  *
- * `video_versions` still takes `[0]`, whose ordering is unverified (#1): four of
- * the five payload shapes type those entries with no width/height at all, so
- * there is nothing to compare and only `type` discriminates them. This is the
- * only place that reads it apart from the linked-inline-media branch in
- * `threads/post.ts`, so settling that question is now a one-line change here.
+ * `video_versions` takes `[0]`, and for stories and highlights that is correct
+ * for a duller reason than it looks: the entries are not renditions at all.
+ * Measured 2026-10-05 over 65 cached media, every one carried exactly three
+ * entries typed 101, 102 and 103 whose `url` values were byte-identical to each
+ * other, signature and expiry included — one file, described three times. There
+ * is nothing to choose between, no width/height on any entry, and no size token
+ * in the URLs. So `type` does not denote an encoding to pick from here, and
+ * largest-area selection has no subject rather than being merely unreliable.
+ *
+ * NOT established for the `ReelsMedia` shape in types/global.d.ts, the one that
+ * declares `width`, `height` and `id` on a video version and so may carry real
+ * alternatives. Its cache was empty on every probe. If that shape ever needs a
+ * different pick, this is the only place to change it apart from the
+ * linked-inline-media branch in `threads/post.ts`. See #1.
  */
 export function getImgOrVideoUrl(item: Record<string, any>) {
   return item.video_versions?.[0]?.url || largestCandidate(item.image_versions2?.candidates)?.url;
