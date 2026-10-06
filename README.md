@@ -93,11 +93,6 @@ Three things worth knowing:
 - **There are no auto-updates.** Self-distributed add-ons only update when you build, bump, sign and
   install again.
 
-## Core Dependencies
-
-- [Preact](https://github.com/preactjs/preact) (used via preact/compat,
-  [MIT License](https://github.com/preactjs/preact/blob/master/LICENSE))
-
 ## Development
 
 This project uses [pnpm](https://pnpm.io/) and [esbuild](https://esbuild.github.io/) for
