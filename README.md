@@ -81,6 +81,10 @@ publicly, no human review, usually a minute or two.
 
 Then open `about:addons` → the gear icon → **Install Add-on From File**, and pick the `.xpi`.
 
+Each [release](https://github.com/denchen/instagram-download-browser-extension/releases) has its
+signed `.xpi` attached, so a released version can be installed from there without building or
+signing.
+
 Three things worth knowing:
 
 - **Versions are permanent.** AMO refuses a version number it has already accepted for a given

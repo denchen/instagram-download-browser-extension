@@ -36,34 +36,68 @@ CI is one job, `check`, running `fmt:check`, `lint`, `tsc --noEmit`, `test`, and
 a required status check on `master`, so changes go through a branch and a PR — a direct push to
 `master` is rejected.
 
-## Releasing a new version to Firefox
+## Releases
 
-Chrome needs none of this: rebuild, click ↻ on the card at `chrome://extensions`, then reload any
-open Instagram tab, because content scripts are not re-injected into pages already open.
+A release is one version: a `package.json` bump, a signed Firefox `.xpi`, and a GitHub release
+whose tag marks the commit both were built from. `package.json` is the source of truth. The build
+writes its version into each `manifest.json`, and the tag only records it.
 
-Firefox is different, and the order matters.
+**Which request means what.**
 
-**1. Decide whether it is worth a release at all.** Every signing burns a version number
-permanently (see step 2). A diagnostics-only change — a log line's wording, a comment — is not
-worth a cycle on its own; batch it with the next change that alters behaviour.
+- **"Make a new release"**, "cut a release", "ship it to Firefox", "make a new version", or "make a
+  new build" when it means something to install as a new version: run the whole procedure below.
+  The request covers merging the bump PR, since that PR only changes the version.
+- **"Rebuild"**, or "build it" in the middle of other work: a local build only. Run
+  `pnpm run build:chrome` (or `build:ff`) with no version change, then tell the user to click ↻ at
+  `chrome://extensions` and reload open Instagram tabs. Content scripts are not re-injected into
+  pages already open.
+- If it is unclear which one is meant, ask. A release burns a version number permanently.
 
-**2. Bump the version. This is mandatory and irreversible.** AMO refuses a version number it has
-already accepted for a given add-on ID, with no expiry, so a re-sign at the same version fails.
+Chrome never needs a release. It loads `dist/chrome` directly, so a rebuild is enough, and the
+version it shows is whatever the last build wrote.
+
+### Procedure
+
+Commands use the `gh` setup from "Traps" below: `GH_CONFIG_DIR=~/.config/gh-personal` and
+`-R denchen/instagram-download-browser-extension`.
+
+**1. Check there is something to release.** Start on an up-to-date, clean `master`, then list
+what the release would contain:
 
 ```bash
-pnpm version 2.5.4 --no-git-tag-version
+git log --oneline "$(git describe --tags --abbrev=0)"..master
 ```
 
-Commit the bump with the change it ships, and rebuild so `dist/` carries the new number — the
-version Firefox and Chrome display comes from `dist/<target>/manifest.json`, which only a build
-regenerates. Editing source and reloading without rebuilding shows the same version with the old
-code, and nothing warns you.
+If it is only diagnostics (a log line's wording, comments, docs, CI), say so and ask before going
+on. Each signing burns a version, so changes like that wait for one that alters behaviour.
 
-**3. Signing credentials are the user's, not the agent's.** `pnpm run sign:ff` needs
-`WEB_EXT_API_KEY` and `WEB_EXT_API_SECRET` exported in the shell that runs it. An agent's shell is
-started fresh from the profile and will not have them — deliberately, since they grant publishing
-rights on the user's AMO account. **Do not attempt to run the signing step. Hand it to the user**
-with the commands, after confirming the bump and the build are done.
+**2. Pick the version** from those commits. Use a minor bump if any is a `feat:`, otherwise a patch
+bump. Ask before a major bump. State the version you chose. Don't ask for approval of a
+minor or patch.
+
+**3. Bump in a PR.** AMO refuses a version it has already accepted for this add-on ID, with no
+expiry, so this is irreversible once signed.
+
+```bash
+git checkout -b release/vX.Y.Z
+pnpm version X.Y.Z --no-git-tag-version
+git commit -am "chore: release vX.Y.Z"
+```
+
+Push it, open the PR (no Jira ticket, as with every PR in this fork), wait for `check`, and
+squash-merge with `--match-head-commit`. **Never let `pnpm version` create the tag.** The squash
+merge rewrites the commit, so a tag made on the branch points at a commit `master` never contains.
+
+**4. Build from the merge commit.** Pull `master`, confirm `HEAD` is the bump's merge commit and
+the tree is clean, then run `pnpm run build:chrome` and `pnpm run build:ff`. Check that both
+`dist/*/manifest.json` show the new version. The version the browsers display comes from there,
+and only a build regenerates it.
+
+**5. Hand signing to the user, then stop.** `pnpm run sign:ff` needs `WEB_EXT_API_KEY` and
+`WEB_EXT_API_SECRET` exported in the shell that runs it. An agent's shell starts fresh from the
+profile without them, deliberately: they grant publishing rights on the user's AMO account.
+**Never attempt the signing step.** Give the user these commands, and tell them to run the
+commands from the same clean `master`, because `sign:ff` rebuilds from the working tree:
 
 ```bash
 export WEB_EXT_API_KEY='user:00000:00'
@@ -71,28 +105,53 @@ export WEB_EXT_API_SECRET='...'
 pnpm run sign:ff
 ```
 
-Credentials come from [AMO Developer Hub → Manage API Keys](https://addons.mozilla.org/developers/addon/api/key/).
-The secret is displayed once; losing it means revoke and regenerate.
+Credentials come from
+[AMO Developer Hub → Manage API Keys](https://addons.mozilla.org/developers/addon/api/key/). The
+secret is displayed once, and losing it means revoke and regenerate. `sign:ff` uploads on the
+**unlisted** channel (self-distribution: no public listing, no human review, automated validation
+only) and writes `web-ext-artifacts/<hash>-X.Y.Z.xpi`.
 
-**4. Install the result.** `sign:ff` rebuilds, uploads on the **unlisted** channel (self-distribution:
-no public listing, no human review, automated validation only), and writes a signed `.xpi` to
-`web-ext-artifacts/`. Install it at `about:addons` → gear → **Install Add-on From File**. Firefox
-treats it as an upgrade and keeps stored settings, except where a setting key was renamed, which
-resets that one toggle to its default.
+Wait for the user to confirm signing succeeded. If AMO rejects the upload, nothing is released
+yet: fix the problem and sign again. A version AMO _accepted_ can't be reused, so fixing anything
+after that means going back to step 2.
 
-**5. Confirm what actually shipped.** Check the version in `about:addons`, and if the change should
-be observable, verify the behaviour rather than the number. Grepping `dist/` for a string the change
-introduced is a cheap way to prove the build carries it.
+**6. Publish the release** once the `.xpi` exists. Tag the bump's merge commit by its SHA, not
+`master`, which may have moved. Attach the `.xpi` under a readable name:
 
-Two standing constraints:
+```bash
+cp web-ext-artifacts/*-X.Y.Z.xpi /tmp/instagram-download-browser-extension-X.Y.Z.xpi
+GH_CONFIG_DIR=~/.config/gh-personal gh release create vX.Y.Z \
+  -R denchen/instagram-download-browser-extension \
+  --target <merge-sha> --title vX.Y.Z --generate-notes \
+  --notes-start-tag "$(git describe --tags --abbrev=0)" \
+  /tmp/instagram-download-browser-extension-X.Y.Z.xpi
+```
+
+Run `git describe` before the new tag exists locally, so it returns the previous release. The notes
+list the PR titles merged since then.
+
+**7. Check the tag workflow.** Pushing the tag runs `.github/workflows/release-tag.yml`. It fails
+if the tag doesn't match `package.json` at that commit, or if the commit isn't on `master`. If it
+fails, delete the release and its tag (`gh release delete vX.Y.Z --cleanup-tag`), fix the cause,
+and publish again. Report the release URL when it passes.
+
+**8. Install and confirm.** The user installs the `.xpi` at `about:addons` → gear → **Install
+Add-on From File**. Firefox treats it as an upgrade and keeps stored settings, except where a
+setting key was renamed, which resets that one toggle to its default. Have them check the version
+in `about:addons`. If the release changes behaviour, verify the behaviour rather than the number.
+
+### Standing constraints
 
 - `browser_specific_settings.gecko.id` is `instagram-downloader@denchen`. AMO will not sign under an
   ID registered to another account. The distinct ID is also what lets this coexist with the
-  published add-on — only enable one at a time, or both inject into Instagram and every button
+  published add-on. Only enable one at a time, or both inject into Instagram and every button
   appears twice.
-- **There are no auto-updates.** Self-distributed add-ons update only when someone builds, bumps,
-  signs and installs again. Firefox silently staying several versions behind Chrome is the normal
-  failure mode here; check it when behaviour differs between the two browsers.
+- **There are no auto-updates.** Self-distributed add-ons update only when someone releases and
+  installs again. Firefox silently falling several versions behind Chrome is the normal failure mode
+  here. When behaviour differs between the two browsers, compare the version in `about:addons` with
+  the latest release.
+- `v2.5.3` is a baseline tag with no GitHub release. It marks the last version signed before releases
+  were tracked, so the first release's notes start there. Earlier signed versions have no tags.
 
 ## Traps that have already cost time
 
