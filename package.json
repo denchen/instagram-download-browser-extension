@@ -8,15 +8,15 @@
     "download",
     "extension"
   ],
-  "homepage": "https://github.com/TheKonka/instagram-download-browser-extension",
+  "homepage": "https://github.com/denchen/instagram-download-browser-extension",
   "bugs": {
-    "url": "https://github.com/TheKonka/instagram-download-browser-extension/issues",
-    "email": "1094918@gmail.com"
+    "url": "https://github.com/denchen/instagram-download-browser-extension/issues",
+    "email": "denchen@yahoo.com"
   },
   "license": "SEE LICENSE IN LICENSE",
   "author": {
-    "name": "Konka",
-    "email": "1094918@gmail.com"
+    "name": "Dennis Chen",
+    "email": "denchen@yahoo.com"
   },
   "type": "module",
   "scripts": {
