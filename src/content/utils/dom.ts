@@ -25,3 +25,22 @@ export function getCurrentStepFromDotsList(dotslists: NodeListOf<Element>) {
   const baseCount = Math.min(...counts);
   return nodes.findIndex((node) => node.classList.length === baseCount + 1);
 }
+
+/**
+ * The profile header's username row, which holds the username heading and the
+ * "…" options button side by side. Found from the options icon, an SVG of
+ * three circles, rather than a fixed path, because Instagram changes the
+ * wrapper depth: `section>main>div>header>section:nth-child(2)` stopped
+ * matching when an extra div appeared above the header.
+ *
+ * Measured 2026-10-06: `main header > … > div (row) > div[role=button] > div >
+ * svg > circle ×3`, with the heading in the row's other child.
+ */
+export function getProfileHeaderRow(root: ParentNode = document) {
+  const header = root.querySelector("main header");
+  const row = header?.querySelector("svg circle")?.closest('[role="button"]')?.parentElement;
+  // A row outside the header, or without the username, means the structure
+  // changed again; refuse rather than put the buttons somewhere arbitrary.
+  if (!header || !row || !header.contains(row) || !row.querySelector("h1, h2")) return null;
+  return row;
+}

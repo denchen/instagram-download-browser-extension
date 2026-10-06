@@ -2,12 +2,14 @@ import { MediaType } from "../constants";
 import { downloadResource, openInNewTab } from "./utils/fn";
 
 async function profileOnClicked(target: HTMLAnchorElement) {
-  const { user_profile_pic_url } = await chrome.storage.local.get(["user_profile_pic_url"]);
-  const data = new Map(user_profile_pic_url || []);
   const arr = window.location.pathname.split("/").filter((e) => e);
   const username =
     arr.length === 1 ? arr[0] : document.querySelector("main header h2")?.textContent;
-  const url = data.get(username) || document.querySelector("header img")?.getAttribute("src");
+  // The header renders the avatar at full resolution (1080×1080 measured
+  // 2026-10-06), so its src is the image to save. Upstream also looked up a
+  // `user_profile_pic_url` cache first, but nothing has written that key since
+  // upstream's c06e1ab (2024), so the lookup always missed.
+  const url = document.querySelector("header img")?.getAttribute("src");
   if (typeof url === "string") {
     if (target.className.includes("download-btn")) {
       // No post time exists for an avatar, so `datetime` is left off and
@@ -27,11 +29,15 @@ async function profileOnClicked(target: HTMLAnchorElement) {
 import type { IconColor } from "../types/global";
 import { CLASS_CUSTOM_BUTTON } from "../constants";
 import { addCustomBtn, addVideoDownloadCoverBtn } from "./button";
+import { getProfileHeaderRow } from "./utils/dom";
 import type { PageHandler } from "./handlers";
 import { VIDEO_SVG_PATH } from "../constants";
 import { postOnClicked } from "./post";
 
 export class ProfilePageHandler implements PageHandler {
+  // process() runs every two seconds; one warning per page load is enough.
+  private warnedMissingRow = false;
+
   match(url: URL, pathnameList: string[]) {
     return (
       pathnameList.length === 1 ||
@@ -40,12 +46,18 @@ export class ProfilePageHandler implements PageHandler {
   }
 
   process(iconColor: IconColor) {
-    const profileHeader = document.querySelector("section>main>div>header>section:nth-child(2)");
-    if (profileHeader && profileHeader.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
-      const profileBtn = profileHeader.querySelector("svg circle");
-      if (profileBtn) {
-        addCustomBtn(profileBtn.parentNode?.parentNode?.parentNode, iconColor);
+    const headerRow = getProfileHeaderRow();
+    if (headerRow) {
+      if (headerRow.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
+        addCustomBtn(headerRow, iconColor);
       }
+    } else if (document.querySelector("main header img") && !this.warnedMissingRow) {
+      // The header has rendered but its layout no longer matches, which used
+      // to mean the avatar buttons vanished with no trace.
+      this.warnedMissingRow = true;
+      console.warn(
+        "Profile header found, but not the username row with the options button; avatar download buttons not added.",
+      );
     }
 
     const pathnameList = window.location.pathname.split("/").filter((e) => e);
@@ -71,7 +83,7 @@ export class ProfilePageHandler implements PageHandler {
   }
 
   onCustomButtonClick(target: HTMLAnchorElement) {
-    if (document.querySelector("section>main>div>header>section:nth-child(2)")?.contains(target)) {
+    if (getProfileHeaderRow()?.contains(target)) {
       return profileOnClicked(target);
     }
     return postOnClicked(target);
