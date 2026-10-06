@@ -28,8 +28,8 @@ function App() {
       <main className={"container " + (isMobile ? "mobile" : "")}>
         <a
           className="github"
-          target="_black"
-          rel="noopener,noreferrer"
+          target="_blank"
+          rel="noopener noreferrer"
           href="https://github.com/denchen/instagram-download-browser-extension"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56">
