@@ -1,12 +1,6 @@
 export type IconColor = "white" | "black";
 export type IconClassName = "newtab-btn" | "download-btn" | "download-all-btn";
 
-declare module "react" {
-  interface CSSProperties {
-    [key: `--${string}`]: string | number;
-  }
-}
-
 declare namespace ReelsMedia {
   export interface Root {
     reels_media: ReelsMedum[];

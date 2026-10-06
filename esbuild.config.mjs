@@ -17,7 +17,7 @@ try {
 const entryPoints = [
   "src/content/index.ts",
   "src/content/loader.ts",
-  "src/popup/index.tsx",
+  "src/popup/index.ts",
   "src/options/index.ts",
 ];
 
@@ -34,12 +34,6 @@ const ctx = await esbuild.context({
   bundle: true,
   format: "esm",
   splitting: true,
-  alias: {
-    react: "preact/compat",
-    "react-dom/test-utils": "preact/test-utils",
-    "react-dom": "preact/compat",
-    "react/jsx-runtime": "preact/jsx-runtime",
-  },
   plugins: [
     sassPlugin({
       embedded: true,
