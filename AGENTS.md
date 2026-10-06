@@ -104,6 +104,11 @@ Two standing constraints:
   repository permission problem rather than an identity one.
 - **oxfmt formats markdown here.** `README.md` and this file are in its `--check` set, so a
   documentation-only change can fail CI. Run `pnpm run fmt` before committing any `.md`.
+- **Content scripts are classic scripts, not modules.** A top-level `import` stops the whole file,
+  with no visible error. `esbuild.config.mjs` builds everything under the manifest's
+  `content_scripts` as IIFE, and a one-shot build fails if any of them would not parse as a classic
+  script. To load module code from a content script, `import()` it at runtime the way
+  `content/loader.ts` does.
 - **A `dataset.foo` write and its reader can use different spellings.** `button.ts` sets
   `dataset.videoCoverDownload`; `index.ts` reads `getAttribute("data-video-cover-download")`.
   Grepping either form finds one half and the code reads as dead. Check the kebab-case form before
