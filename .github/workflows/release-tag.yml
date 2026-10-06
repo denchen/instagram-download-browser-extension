@@ -1,0 +1,42 @@
+name: Release tag
+
+# A release tag records which commit a version was built from, and the version
+# itself lives in package.json, because the build writes it into the manifest
+# and AMO refuses a version it has already signed. This catches the two ways a
+# tag can lie about that. It runs after the tag exists, so a failure means
+# delete the release and its tag, then fix and tag again.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Full history, so the master check below can see the tagged commit.
+          fetch-depth: 0
+
+      - name: Tag matches package.json
+        run: |
+          version=$(jq -r .version package.json)
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME, but package.json at that commit says $version."
+            exit 1
+          fi
+
+      # A squash merge rewrites the branch commit, so a tag made before merging
+      # points at a commit master never contains.
+      - name: Tagged commit is on master
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/master; then
+            echo "::error::$GITHUB_REF_NAME points at $GITHUB_SHA, which is not on master. Tag the bump's merge commit instead."
+            exit 1
+          fi
