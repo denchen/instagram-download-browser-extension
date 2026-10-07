@@ -40,17 +40,43 @@ Host github-personal
 ## 3. Register the key on GitHub twice
 
 GitHub tracks authentication keys and signing keys separately. The same key has to be added as
-both or commits show as Unverified.
+both or commits show as Unverified. Paste `~/.ssh/id_ed25519_personal.pub` at
+[Settings → SSH and GPG keys → New SSH key](https://github.com/settings/ssh/new) twice: once with
+key type **Authentication Key**, once with **Signing Key**.
+
+Add keys here, by hand, never through `gh ssh-key add`. GitHub deletes every key an OAuth app
+uploaded when that app's grant is revoked, so a key added via the GitHub CLI login silently
+disappears the day you clean up old authorizations. That has already happened once.
+
+## 3b. A `gh` token that can only reach this repo
+
+`gh` does not use the SSH key; it needs a token, and that token should not be the classic
+all-repos kind. Create a fine-grained one at
+[Settings → Developer settings → Fine-grained tokens](https://github.com/settings/personal-access-tokens/new):
+expiration one year, repository access **Only select repositories** with this repo, and these
+repository permissions (everything else "No access"):
+
+| Permission        | Level          | Needed for                   |
+| ----------------- | -------------- | ---------------------------- |
+| Actions           | Read and write | Actions policy, viewing runs |
+| Administration    | Read and write | Rulesets, repo settings      |
+| Commit statuses   | Read           | `gh pr checks`               |
+| Contents          | Read and write | Releases, merging            |
+| Dependabot alerts | Read           | Checking alerts from the CLI |
+| Issues            | Read and write | The tracking issues          |
+| Pull requests     | Read and write | Opening and merging PRs      |
+| Metadata          | Read           | Set automatically            |
+
+Copy the token, then log in from the clipboard so it never reaches shell history:
 
 ```bash
-export GH_CONFIG_DIR=~/.config/gh-personal
-gh auth login -h github.com -p ssh -s admin:public_key,admin:ssh_signing_key
-gh ssh-key add ~/.ssh/id_ed25519_personal.pub --type authentication --title "<machine> auth"
-gh ssh-key add ~/.ssh/id_ed25519_personal.pub --type signing --title "<machine> signing"
+pbpaste | GH_CONFIG_DIR=~/.config/gh-personal gh auth login --hostname github.com --git-protocol ssh --with-token
 ```
 
-Log in as the personal account, not the work one. `GH_CONFIG_DIR` is what keeps the two `gh`
-logins apart; `.envrc` in the repo exports it, so inside the repo plain `gh` is the personal one.
+`GH_CONFIG_DIR` is what keeps this login apart from the work one; `.envrc` in the repo exports it,
+so inside the repo plain `gh` is the personal one. The token expires after a year: when `gh`
+starts answering 401, make a new one the same way. To use `gh` with another personal repo, add
+that repo to the token's list rather than making a broader token.
 
 ## 4. Git identity and signing, scoped to personal repos
 
@@ -128,7 +154,7 @@ in history (`export` from `.envrc` only). Push protection on the repo is a backs
   (Settings → SSH and GPG keys → "Flag unsigned commits as unverified"); it is an account setting
   and should already be on.
 - Mozilla Add-ons: 2FA on the account that owns the API keys.
-- Old machine: delete its **authentication** key on GitHub. Leave its **signing** key in place;
+- Old machine: delete its fine-grained token and its **authentication** key on GitHub. Leave its **signing** key in place;
   removing a signing key can turn the commits it signed Unverified, and without the private key it
   cannot sign anything new.
 
