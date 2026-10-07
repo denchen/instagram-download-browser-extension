@@ -7,3 +7,9 @@
 allowBuilds:
   esbuild: false
   "@parcel/watcher": false
+
+# Refuse any version published less than 7 days ago (the value is in minutes).
+# Compromised npm publishes are typically caught and pulled within a day or
+# two, so a cooldown means such a version is never resolved here. It applies
+# when the lockfile changes; `pnpm install --frozen-lockfile` is unaffected.
+minimumReleaseAge: 10080
