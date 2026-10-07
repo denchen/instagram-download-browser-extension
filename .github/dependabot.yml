@@ -1,0 +1,17 @@
+# Keeps the pinned action SHAs and the dev toolchain current. Every npm
+# dependency here is a devDependency, so they land as one weekly PR; CI is the
+# gate, and nothing is auto-merged. minimumReleaseAge in pnpm-workspace.yaml
+# still applies to what Dependabot proposes.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      dev-toolchain:
+        patterns: ["*"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
