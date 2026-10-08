@@ -82,7 +82,18 @@ describe("getUrlFromInfoApi", () => {
     return fetchMock;
   };
 
+  let cache: Record<string, unknown>;
+
   beforeEach(() => {
+    cache = {};
+    vi.stubGlobal("chrome", {
+      storage: {
+        local: {
+          get: (keys: string[]) =>
+            Promise.resolve(Object.fromEntries(keys.map((key) => [key, cache[key]]))),
+        },
+      },
+    });
     window.history.replaceState(null, "", "/p/POSTCODE/");
     const script = document.createElement("script");
     script.type = "application/json";
@@ -145,6 +156,65 @@ describe("getUrlFromInfoApi", () => {
   it("returns null when the info API fails", async () => {
     mockApi(photo("single"), 429);
     expect(await fn.getUrlFromInfoApi(document.body)).toBeNull();
+  });
+
+  describe("before the API", () => {
+    const expiringIn = (ms: number) =>
+      `https://cdn.example/cached.jpg?oe=${Math.floor((Date.now() + ms) / 1000).toString(16)}`;
+    const cachedPhoto = (url: string) => ({
+      code: "POSTCODE",
+      taken_at: TAKEN_AT,
+      owner: owner("cached_owner"),
+      image_versions2: { candidates: [{ url, width: 1080, height: 1080 }] },
+    });
+
+    it("uses a fresh cached post without any request", async () => {
+      const url = expiringIn(86_400_000);
+      cache["post:POSTCODE"] = cachedPhoto(url);
+      const fetchMock = mockApi(photo("single"));
+      expect(await fn.getUrlFromInfoApi(document.body)).toMatchObject({
+        url,
+        owner: "cached_owner",
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the API when the cached URLs are about to expire", async () => {
+      cache["post:POSTCODE"] = cachedPhoto(expiringIn(60_000));
+      const fetchMock = mockApi(photo("single"));
+      expect(await fn.getUrlFromInfoApi(document.body)).toMatchObject({ url: fullUrl("single") });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it("uses the home feed embedded in the page, which the background never sees", async () => {
+      const embedded = document.createElement("script");
+      embedded.type = "application/json";
+      embedded.text = JSON.stringify({
+        require: [
+          {
+            result: {
+              data: {
+                xdt_api__v1__feed__timeline__connection: {
+                  edges: [
+                    { node: { media: null } },
+                    {
+                      node: { media: photo("embedded", { code: "POSTCODE", user: owner("feed") }) },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        ],
+      });
+      document.body.append(embedded);
+      const fetchMock = mockApi(photo("single"));
+      expect(await fn.getUrlFromInfoApi(document.body)).toMatchObject({
+        url: fullUrl("embedded"),
+        owner: "feed",
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
   });
 
   it("returns null without fetching when the page has no app id", async () => {

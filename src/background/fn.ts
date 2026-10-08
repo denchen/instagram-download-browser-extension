@@ -2,6 +2,15 @@ import type { Stories } from "../types/stories";
 import type { Highlight } from "../types/highlights";
 import type { Reels } from "../types/reels";
 import type { ProfileReel } from "../types/profileReel";
+import {
+  POST_INDEX_KEY,
+  POST_KEY_PREFIX,
+  type PostIndex,
+  postExpiry,
+  postsFromGraphql,
+  slimPost,
+  updateIndex,
+} from "../content/utils/post-cache";
 
 export function limitMapSize(map: Map<any, any>, maxSize: number = 200) {
   while (map.size > maxSize) {
@@ -87,6 +96,29 @@ async function saveStoriesToLocal(data: Stories.ReelsMedum[]) {
 }
 
 /**
+ * Caches home-feed and profile-grid posts, one storage key per post plus an
+ * index, so a download can skip the media API. Unlike the caches above this
+ * one is large (2,000 posts), and rewriting it whole on every scroll would
+ * mean several MB per response.
+ */
+export async function savePosts(jsonData: Record<string, any>) {
+  const posts = postsFromGraphql(jsonData).map(slimPost);
+  if (posts.length === 0) return;
+  const stored = await chrome.storage.local.get([POST_INDEX_KEY]);
+  const { index, evicted } = updateIndex(
+    (stored[POST_INDEX_KEY] as PostIndex | undefined) ?? [],
+    posts.map((post): PostIndex[number] => [post.code, postExpiry(post)]),
+  );
+  await chrome.storage.local.set({
+    [POST_INDEX_KEY]: index,
+    ...Object.fromEntries(posts.map((post) => [POST_KEY_PREFIX + post.code, post])),
+  });
+  if (evicted.length > 0) {
+    await chrome.storage.local.remove(evicted.map((code) => POST_KEY_PREFIX + code));
+  }
+}
+
+/**
  * Caches every kind of media a GraphQL query response can carry. Each saver
  * checks for its own payload and returns early otherwise.
  *
@@ -95,6 +127,7 @@ async function saveStoriesToLocal(data: Stories.ReelsMedum[]) {
  * other's update.
  */
 export async function saveGraphqlQuery(jsonData: Record<string, any>) {
+  await savePosts(jsonData);
   await saveHighlights(jsonData);
   await saveReels(jsonData);
   await saveStories(jsonData);

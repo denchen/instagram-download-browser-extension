@@ -1,6 +1,7 @@
 import { MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../../constants";
 import { DownloadParams, getExtensionFromUrl, getFilenameFromUrl, getUserFolder } from "./filename";
 import { describeRendition, getImgOrVideoUrl } from "./media";
+import { POST_KEY_PREFIX, isFresh, postExpiry, postsFromEmbedded, slimPost } from "./post-cache";
 
 export async function openInNewTab(url: string) {
   try {
@@ -121,16 +122,57 @@ const findMediaId = async (postId: string) => {
   return mediaIdCache.get(postId);
 };
 
+/**
+ * A post the user has already scrolled past, from the background's cache of
+ * feed and grid responses or, for the home feed's first screen, from the data
+ * embedded in the page. Null means fall back to the media API.
+ */
+async function getCachedPost(code: string) {
+  const key = POST_KEY_PREFIX + code;
+  try {
+    const { [key]: post } = await chrome.storage.local.get([key]);
+    if (post && isFresh(postExpiry(post))) {
+      console.log(`Post ${code} found in the browsing cache; no API request needed.`);
+      return post;
+    }
+  } catch (e) {
+    console.warn("Could not read the post cache; falling back to the media API.", e);
+  }
+
+  for (const script of document.scripts) {
+    const text = script.textContent ?? "";
+    if (!text.includes(code) || !text.includes("xdt_api__v1__feed__timeline__connection")) {
+      continue;
+    }
+    try {
+      const media = postsFromEmbedded(JSON.parse(text)).find((m) => m.code === code);
+      if (media) {
+        const post = slimPost(media);
+        if (isFresh(postExpiry(post))) {
+          console.log(`Post ${code} found in the page's embedded feed; no API request needed.`);
+          return post;
+        }
+      }
+    } catch {
+      // Most page scripts are not JSON; the cheap text checks above skip the
+      // majority, and a parse failure here just means keep looking.
+    }
+  }
+  return null;
+}
+
 export const getDataFromAPI = async (articleNode: HTMLElement) => {
   try {
-    const appId = findAppId();
-    if (!appId) {
-      console.log("Cannot find appid");
-      return null;
-    }
     const postId = findPostId(articleNode);
     if (!postId) {
       console.log("Cannot find post id");
+      return null;
+    }
+    const cached = await getCachedPost(postId);
+    if (cached) return cached;
+    const appId = findAppId();
+    if (!appId) {
+      console.log("Cannot find appid");
       return null;
     }
     const mediaId = await findMediaId(postId);
