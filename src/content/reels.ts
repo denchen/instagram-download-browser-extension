@@ -5,6 +5,7 @@ import {
   getUrlFromInfoApi,
   openInNewTab,
 } from "./utils/fn";
+import { cachedUrlExpired } from "./utils/post-cache";
 import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
 import { getImgOrVideoUrl } from "./utils/media";
 import type { Reels } from "../types/reels";
@@ -76,7 +77,7 @@ export class ReelsPageHandler implements PageHandler {
     const code = window.location.pathname.split("/").at(-2);
     const { reels_edges_data } = await chrome.storage.local.get(["reels_edges_data"]);
     const media = new Map(reels_edges_data || []).get(code) as Reels.Media | undefined;
-    if (media) {
+    if (media && !cachedUrlExpired(media, "reel")) {
       handleMedia(media);
       return;
     }

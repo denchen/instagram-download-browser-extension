@@ -146,6 +146,21 @@ export function isFresh(expiresAt: number | null, now = Date.now()) {
 }
 
 /**
+ * For the older caches (reels, profile reels, highlights), which store raw
+ * media and used to serve an entry however old it was. Those caches persist
+ * across restarts, so an entry can outlive its signed URL; downloading it
+ * then fails at the CDN instead of reaching the paths that would work.
+ *
+ * True means treat the entry as a miss. An item with no readable expiry, or no
+ * item at all, is left to the caller as before.
+ */
+export function cachedUrlExpired(item: Record<string, any> | undefined, what: string) {
+  if (!item || isFresh(postExpiry(item))) return false;
+  console.log(`Cached ${what} has an expired media URL; looking it up again instead.`);
+  return true;
+}
+
+/**
  * Adds freshly seen posts to the end of the index, then drops anything expired
  * and, past `limit`, whatever has gone longest without being seen. Returns the
  * codes whose stored entries should now be removed.

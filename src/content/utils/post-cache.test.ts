@@ -1,8 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { TAKEN_AT, carousel, fullUrl, owner, photo, video } from "../../test/fixtures";
 import { getImgOrVideoUrl } from "./media";
 import {
+  cachedUrlExpired,
   isFresh,
   postExpiry,
   postsFromEmbedded,
@@ -195,5 +196,33 @@ describe("updateIndex", () => {
     );
     expect(index.map(([code]) => code)).toStrictEqual(["B", "C"]);
     expect(evicted).toStrictEqual(["OLD"]);
+  });
+});
+
+describe("cachedUrlExpired", () => {
+  it("flags an item whose URL has expired, and says so", () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    expect(cachedUrlExpired(signedPhoto("old", Date.now() - 1000), "reel")).toBe(true);
+    expect(log).toHaveBeenCalledWith(
+      expect.stringContaining("Cached reel has an expired media URL"),
+    );
+  });
+
+  it("lets a fresh item through", () => {
+    expect(cachedUrlExpired(signedPhoto("new", Date.now() + 86_400_000), "reel")).toBe(false);
+  });
+
+  it("checks the video a reel would download, not its cover", () => {
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    const reel = {
+      video_versions: [{ url: signed("clip", Date.now() - 1000) }],
+      ...signedPhoto("cover", Date.now() + 86_400_000),
+    };
+    expect(cachedUrlExpired(reel, "reel")).toBe(true);
+  });
+
+  it("leaves an item with no readable expiry, or no item, to the caller", () => {
+    expect(cachedUrlExpired(photo("p"), "highlight")).toBe(false);
+    expect(cachedUrlExpired(undefined, "highlight")).toBe(false);
   });
 });

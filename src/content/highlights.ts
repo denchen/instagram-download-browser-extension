@@ -5,6 +5,7 @@ import type { ReelsMedia } from "../types/global";
 import { MediaType } from "../constants";
 import { getParentSectionNode } from "./utils/dom";
 import { getImgOrVideoUrl } from "./utils/media";
+import { cachedUrlExpired } from "./utils/post-cache";
 
 function findHighlight(
   obj: Record<string, any>,
@@ -104,7 +105,7 @@ export async function highlightsOnClicked(
     const itemOnAndroid = (reels_media || []).find(
       (i: ReelsMedia.ReelsMedum) => i.id === "highlight:" + pathnameArr[3],
     );
-    if (itemOnAndroid) {
+    if (itemOnAndroid && !cachedUrlExpired(itemOnAndroid.items[mediaIndex], "highlight")) {
       handleMedias(itemOnAndroid);
       return;
     }
@@ -119,7 +120,7 @@ export async function highlightsOnClicked(
   const localData = new Map(highlights_data || []).get("highlight:" + pathnameArr[3]) as
     | Highlight.Node
     | undefined;
-  if (localData) {
+  if (localData && !cachedUrlExpired(localData.items[mediaIndex], "highlight")) {
     handleMedias(localData);
     return;
   }
