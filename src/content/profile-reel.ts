@@ -1,4 +1,5 @@
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
+import { cachedUrlExpired } from "./utils/post-cache";
 import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
 import { getCurrentStepFromDotsList } from "./utils/dom";
 import { getImgOrVideoUrl } from "./utils/media";
@@ -163,7 +164,7 @@ export class ReelPageHandler implements PageHandler {
       const media = new Map(profile_reels_edges_data || []).get(code) as
         | ProfileReel.Media
         | undefined;
-      if (media) {
+      if (media && !cachedUrlExpired(media, "profile reel")) {
         const url = getImgOrVideoUrl(media);
         const times = [
           ...(target.parentElement?.parentElement?.parentElement?.querySelectorAll("time") ?? []),
