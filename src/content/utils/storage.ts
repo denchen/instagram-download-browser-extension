@@ -5,6 +5,7 @@ interface StorageSettings {
   setting_show_download_all_icon?: boolean;
   setting_enable_threads?: boolean;
   setting_enable_video_controls?: boolean;
+  setting_video_highest_quality?: boolean;
 
   [key: string]: any;
 }

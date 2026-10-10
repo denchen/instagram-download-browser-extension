@@ -29,6 +29,7 @@ describe("popup", () => {
             setting_show_download_all_icon: false,
             setting_enable_video_controls: true,
             setting_enable_threads: false,
+            setting_video_highest_quality: true,
           }),
           set,
         },
@@ -54,8 +55,9 @@ describe("popup", () => {
         "setting_show_download_all_icon",
         "setting_enable_video_controls",
         "setting_enable_threads",
+        "setting_video_highest_quality",
       ].map((id) => checkbox(id)?.checked),
-    ).toStrictEqual([true, false, true, false]);
+    ).toStrictEqual([true, false, true, false, true]);
   });
 
   it("saves the new value each time a setting is toggled", async () => {
