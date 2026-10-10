@@ -1,7 +1,9 @@
-import { MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../../constants";
+import { MESSAGE_BLOB_DOWNLOAD, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../../constants";
+import { type DashStreams, dashManifestFor, pickDashStreams } from "./dash";
 import { DownloadParams, getExtensionFromUrl, getFilenameFromUrl, getUserFolder } from "./filename";
 import { describeRendition, getImgOrVideoUrl } from "./media";
 import { POST_KEY_PREFIX, isFresh, postExpiry, postsFromEmbedded, slimPost } from "./post-cache";
+import { storageCache } from "./storage";
 
 export async function openInNewTab(url: string) {
   try {
@@ -319,6 +321,12 @@ export async function downloadResource(params: DownloadParams) {
   }
   const path = `${folder}/${filename}.${getExtensionFromUrl(url)}`;
 
+  if (storageCache.settings.setting_video_highest_quality !== false) {
+    const dash = dashManifestFor(url);
+    const streams = dash && pickDashStreams(dash.manifest, dash.height);
+    if (streams && (await downloadDash(streams, `${folder}/${filename}.mp4`, filename))) return;
+  }
+
   try {
     const response = await chrome.runtime.sendMessage({
       type: MESSAGE_FILE_DOWNLOAD,
@@ -332,6 +340,70 @@ export async function downloadResource(params: DownloadParams) {
     console.error("Could not reach the background to download; retrying in-page", e);
   }
   downloadInPage(url, filename);
+}
+
+/**
+ * Downloads the DASH video (and audio) streams, muxes them into one MP4 and
+ * saves it under `path`. Returns false when anything before the save fails, so
+ * the caller falls back to the 720p progressive file rather than saving
+ * nothing; the console says why.
+ */
+async function downloadDash(streams: DashStreams, path: string, filename: string) {
+  let blob: Blob;
+  try {
+    const started = performance.now();
+    const fetchBytes = async (streamUrl: string) => {
+      const response = await fetch(streamUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status} for a DASH stream`);
+      return response.arrayBuffer();
+    };
+    const [video, audio, { muxDash }] = await Promise.all([
+      fetchBytes(streams.videoUrl),
+      streams.audioUrl ? fetchBytes(streams.audioUrl) : null,
+      import("./dash-mux"),
+    ]);
+    blob = new Blob([await muxDash(video, audio)], { type: "video/mp4" });
+    console.log(
+      `Downloading ${streams.width}x${streams.height} ${streams.codecs} from the DASH manifest` +
+        (streams.audioUrl ? " with audio" : ", no audio track") +
+        ` (${(blob.size / 1e6).toFixed(1)} MB, muxed in ${Math.round(performance.now() - started)} ms): ${path}`,
+    );
+  } catch (e) {
+    console.error("DASH download failed; falling back to the 720p progressive file", e);
+    return false;
+  }
+
+  const blobUrl = URL.createObjectURL(blob);
+  try {
+    const response = isFirefox()
+      ? await chrome.runtime.sendMessage({
+          type: MESSAGE_BLOB_DOWNLOAD,
+          data: { blob, filename: path },
+        })
+      : await chrome.runtime.sendMessage({
+          type: MESSAGE_FILE_DOWNLOAD,
+          data: { url: blobUrl, filename: path },
+        });
+    if (response?.ok) {
+      // The download holds its own reference once started; this only frees
+      // the URL. Delayed so a slow start can't race it.
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+      return true;
+    }
+    console.error(
+      `Background rejected the DASH video (${response?.error ?? "no response"}); saving in-page`,
+    );
+  } catch (e) {
+    console.error("Could not reach the background for the DASH video; saving in-page", e);
+  }
+  // The muxed file is already built, so keep the quality and lose only the
+  // @username/ folder, which an <a download> cannot create.
+  forceDownload(blobUrl, filename, "mp4");
+  return true;
+}
+
+function isFirefox() {
+  return navigator.userAgent.includes("Firefox/");
 }
 
 export const checkType = () => {

@@ -102,8 +102,14 @@ export function slimPost(media: Record<string, any>): Record<string, any> {
 
 function slimRenditions(item: Record<string, any>) {
   const slim: Record<string, any> = {};
-  const videoUrl = item.video_versions?.[0]?.url;
-  if (videoUrl) slim.video_versions = [{ url: videoUrl }];
+  const video = item.video_versions?.[0];
+  if (video?.url) {
+    slim.video_versions = [{ url: video.url, height: video.height }];
+    // The only route to a rendition above 720p; see pickDashStreams.
+    if (typeof item.video_dash_manifest === "string") {
+      slim.video_dash_manifest = item.video_dash_manifest;
+    }
+  }
   const largest = largestCandidate(item.image_versions2?.candidates);
   if (largest) {
     slim.image_versions2 = {

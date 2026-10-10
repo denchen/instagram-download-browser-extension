@@ -1,4 +1,9 @@
-import { CONFIG_LIST, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../constants";
+import {
+  CONFIG_LIST,
+  MESSAGE_BLOB_DOWNLOAD,
+  MESSAGE_FILE_DOWNLOAD,
+  MESSAGE_OPEN_URL,
+} from "../constants";
 import type { ReelsMedia } from "../types/global";
 import { findValueByKey, limitMapSize, saveGraphqlQuery, saveStories } from "./fn";
 
@@ -269,7 +274,7 @@ browser.webRequest.onBeforeRequest.addListener(
  * resolved. Log the interruption rather than letting the file silently not
  * appear. Mirrors reportDownloadFailures in ./chrome.ts.
  */
-function reportDownloadFailures(id: number, filename: string) {
+function reportDownloadFailures(id: number, filename: string, onDone?: () => void) {
   const onChanged = (delta: {
     id: number;
     error?: { current?: string };
@@ -282,6 +287,7 @@ function reportDownloadFailures(id: number, filename: string) {
     const state = delta.state?.current;
     if (state === "complete" || state === "interrupted") {
       browser.downloads.onChanged.removeListener(onChanged);
+      onDone?.();
     }
   };
   browser.downloads.onChanged.addListener(onChanged);
@@ -306,6 +312,26 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
         reportDownloadFailures(id, data.filename);
         return { ok: true, id };
       } catch (e: any) {
+        const error = String(e?.message ?? e);
+        console.error(`Could not start download of ${data.filename}: ${error}`);
+        return { ok: false, error };
+      }
+    }
+    case MESSAGE_BLOB_DOWNLOAD: {
+      // A muxed DASH video from the content script. The background page has a
+      // DOM, so it can mint its own blob: URL for downloads to read; the
+      // content script's URL belongs to the page and is not readable here.
+      const url = URL.createObjectURL(data.blob);
+      try {
+        const id = await browser.downloads.download({
+          url,
+          filename: data.filename,
+          conflictAction: "uniquify",
+        });
+        reportDownloadFailures(id, data.filename, () => URL.revokeObjectURL(url));
+        return { ok: true, id };
+      } catch (e: any) {
+        URL.revokeObjectURL(url);
         const error = String(e?.message ?? e);
         console.error(`Could not start download of ${data.filename}: ${error}`);
         return { ok: false, error };
