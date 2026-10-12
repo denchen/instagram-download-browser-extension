@@ -1,6 +1,8 @@
 // Pure helpers for Instagram media payloads and URLs. Kept free of DOM,
 // fetch and chrome.* so they can be unit-tested without a browser.
 
+import { rememberDashManifest } from "./dash";
+
 /**
  * Instagram returns several renditions of every photo. They have long been
  * ordered largest-first, so `candidates[0]` is normally the original — but
@@ -52,14 +54,24 @@ export function largestCandidate(candidates?: Record<string, any>[]) {
  * in the URLs. So `type` does not denote an encoding to pick from here, and
  * largest-area selection has no subject rather than being merely unreliable.
  *
- * NOT established for the `ReelsMedia` shape in types/global.d.ts, the one that
- * declares `width`, `height` and `id` on a video version and so may carry real
- * alternatives. Its cache was empty on every probe. If that shape ever needs a
- * different pick, this is the only place to change it apart from the
- * linked-inline-media branch in `threads/post.ts`. See #1.
+ * Reels and carousel videos turned out the same when measured 2026-10-10: three
+ * entries, one URL, tagged `xpv_progressive...C3.720`. The progressive file is
+ * a fixed 720p H.264 encode for every video type, and anything sharper exists
+ * only in `video_dash_manifest`, which is why the manifest is remembered here
+ * for downloadResource to use. See #1.
  */
 export function getImgOrVideoUrl(item: Record<string, any>) {
-  return item.video_versions?.[0]?.url || largestCandidate(item.image_versions2?.candidates)?.url;
+  const video = item.video_versions?.[0];
+  if (video?.url) {
+    // The progressive file is always 720p; a taller rendition exists only in
+    // the DASH manifest. Remember it against this URL so downloadResource can
+    // offer it — see pickDashStreams.
+    if (typeof item.video_dash_manifest === "string") {
+      rememberDashManifest(video.url, item.video_dash_manifest, Number(video.height) || 0);
+    }
+    return video.url as string;
+  }
+  return largestCandidate(item.image_versions2?.candidates)?.url;
 }
 
 /**

@@ -98,6 +98,20 @@ describe("slimPost", () => {
     expect(getImgOrVideoUrl(slimPost(original))).toBe(getImgOrVideoUrl(original));
   });
 
+  // The manifest is the only source of a rendition above 720p, and the height
+  // is what pickDashStreams compares it against.
+  it("keeps the DASH manifest and the progressive file's height", () => {
+    const slim = slimPost(
+      video("v", {
+        code: "V",
+        video_versions: [{ url: "https://cdn.example/v.mp4", width: 720, height: 1280, type: 101 }],
+        video_dash_manifest: "<MPD/>",
+      }),
+    );
+    expect(slim.video_versions).toStrictEqual([{ url: "https://cdn.example/v.mp4", height: 1280 }]);
+    expect(slim.video_dash_manifest).toBe("<MPD/>");
+  });
+
   it("reads the author from `user`, as both timeline payloads name it", () => {
     expect(slimPost(photo("p", { code: "P", user: owner("author") })).owner).toStrictEqual(
       owner("author"),
