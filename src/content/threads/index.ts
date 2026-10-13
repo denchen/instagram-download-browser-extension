@@ -48,18 +48,20 @@ function visiblePosts(pageletPrefix: string) {
 }
 
 // Posts are found by their `data-pagelet` prefix across the whole document.
-// This used to start from `#barcelona-page-layout`, which Threads removed.
-function pageletPrefixes(pathname: string): string[] {
-  const pathnameList = pathname.split("/").filter((e) => e);
-  if (pathname === "/") return ["threads_logged_out_feed_", "threads_feed_"];
-  if (pathname === "/search") return ["threads_search_results_"];
-  if (pathnameList.length === 3 && pathnameList[1] === "post") return ["threads_post_page_"];
-  if (pathname.startsWith("/@")) return ["threads_profile_posts_timeline_"];
-  return [];
-}
+// This used to start from `#barcelona-page-layout`, which Threads removed, and
+// chose one prefix per URL. Every prefix is scanned on every page because the
+// multi-column layout shows a profile or a post beside the home feed while the
+// URL stays `/`.
+const POST_PAGELET_PREFIXES = [
+  "threads_logged_out_feed_",
+  "threads_feed_",
+  "threads_search_results_",
+  "threads_post_page_",
+  "threads_profile_posts_timeline_",
+];
 
 function handleThreads(iconColor: IconColor) {
-  for (const prefix of pageletPrefixes(window.location.pathname)) {
+  for (const prefix of POST_PAGELET_PREFIXES) {
     handleList(visiblePosts(prefix), iconColor);
   }
 }
