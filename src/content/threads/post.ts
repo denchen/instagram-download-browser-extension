@@ -102,6 +102,10 @@ export async function handleThreadsPost(container: HTMLDivElement, action: "down
   const postCode = [...container.querySelectorAll("a")]
     .find((i) => /\w+\/post\/\w+/.test(i.href))
     ?.href.split("/post/")[1];
+  if (!postCode) {
+    console.warn("Threads download: no /post/<code> link in this post's container.");
+    return;
+  }
   const { threads } = await chrome.storage.local.get(["threads"]);
   const threadMap = new Map(threads || []);
   const thread = threadMap.get(postCode) as Record<string, any> | undefined;
@@ -138,5 +142,8 @@ export async function handleThreadsPost(container: HTMLDivElement, action: "down
         }
       } catch {}
     }
+    console.warn(
+      `Threads download: post ${postCode} is not in the captured feed data or the page's embedded JSON.`,
+    );
   }
 }

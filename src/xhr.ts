@@ -58,53 +58,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
             data: this.responseText,
           });
 
-          try {
-            const data = JSON.parse(this.responseText);
-            // Threads
-            if (Array.isArray(data.data?.feedData?.edges)) {
-              void chrome.runtime.sendMessage(EXTENSION_ID, {
-                type: "threads",
-                data: data.data.feedData.edges.flatMap(
-                  (i: any) =>
-                    i.node?.text_post_app_thread?.thread_items ||
-                    i.node?.thread_items ||
-                    i.text_post_app_thread?.thread_items,
-                ),
-              });
-            }
-            if (Array.isArray(data.data?.mediaData?.edges)) {
-              void chrome.runtime.sendMessage(EXTENSION_ID, {
-                type: "threads",
-                data: data.data.mediaData.edges.flatMap((i: any) => i.node.thread_items),
-              });
-            }
-            if (Array.isArray(data.data?.data?.edges)) {
-              void chrome.runtime.sendMessage(EXTENSION_ID, {
-                type: "threads",
-                data: data.data.data.edges.flatMap((i: any) => i.node.thread_items),
-              });
-            }
-            if (Array.isArray(data.data?.results?.edges)) {
-              void chrome.runtime.sendMessage(EXTENSION_ID, {
-                type: "threads",
-                data: data.data.results.edges.flatMap((i: any) => i.node.thread_items),
-              });
-            }
-            if (typeof data.data?.replyPost === "object") {
-              void chrome.runtime.sendMessage(EXTENSION_ID, {
-                type: "threads",
-                data: [data.data.replyPost],
-              });
-            }
-            if (Array.isArray(data.data?.searchResults?.edges)) {
-              void chrome.runtime.sendMessage(EXTENSION_ID, {
-                type: "threads",
-                data: data.data.searchResults.edges.flatMap((i: any) => i.node.thread.thread_items),
-              });
-            }
-          } catch (error) {
-            console.log(error);
-          }
+          forwardThreadsItems(this.responseText);
         });
         break;
       case "https://www.instagram.com/api/graphql":
@@ -115,6 +69,11 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
             api: "https://www.instagram.com/api/graphql",
             data: this.responseText,
           });
+          // The home feed's pages arrive here as `feedData` (measured
+          // 2026-10-12); profile pages still come through /graphql/query.
+          if (window.location.host === "www.threads.com") {
+            forwardThreadsItems(this.responseText);
+          }
         });
         break;
       default:
@@ -125,3 +84,54 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
   // eslint-disable-next-line prefer-rest-params
   return oldXHROpen.apply(this, [].slice.call(arguments) as any);
 };
+
+// Sends the Threads posts in a GraphQL response to the background, which
+// caches them by post code for the download button to look up.
+function forwardThreadsItems(responseText: string) {
+  try {
+    const data = JSON.parse(responseText);
+    if (Array.isArray(data.data?.feedData?.edges)) {
+      void chrome.runtime.sendMessage(EXTENSION_ID, {
+        type: "threads",
+        data: data.data.feedData.edges.flatMap(
+          (i: any) =>
+            i.node?.text_post_app_thread?.thread_items ||
+            i.node?.thread_items ||
+            i.text_post_app_thread?.thread_items,
+        ),
+      });
+    }
+    if (Array.isArray(data.data?.mediaData?.edges)) {
+      void chrome.runtime.sendMessage(EXTENSION_ID, {
+        type: "threads",
+        data: data.data.mediaData.edges.flatMap((i: any) => i.node.thread_items),
+      });
+    }
+    if (Array.isArray(data.data?.data?.edges)) {
+      void chrome.runtime.sendMessage(EXTENSION_ID, {
+        type: "threads",
+        data: data.data.data.edges.flatMap((i: any) => i.node.thread_items),
+      });
+    }
+    if (Array.isArray(data.data?.results?.edges)) {
+      void chrome.runtime.sendMessage(EXTENSION_ID, {
+        type: "threads",
+        data: data.data.results.edges.flatMap((i: any) => i.node.thread_items),
+      });
+    }
+    if (typeof data.data?.replyPost === "object") {
+      void chrome.runtime.sendMessage(EXTENSION_ID, {
+        type: "threads",
+        data: [data.data.replyPost],
+      });
+    }
+    if (Array.isArray(data.data?.searchResults?.edges)) {
+      void chrome.runtime.sendMessage(EXTENSION_ID, {
+        type: "threads",
+        data: data.data.searchResults.edges.flatMap((i: any) => i.node.thread.thread_items),
+      });
+    }
+  } catch (error) {
+    console.log(error);
+  }
+}

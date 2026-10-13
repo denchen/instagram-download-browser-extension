@@ -84,7 +84,12 @@ async function listenThreads(
     await browser.storage.local.set({ threads: Array.from(newMap) });
   }
 
-  if (details.url === "https://www.threads.com/graphql/query") {
+  // The home feed's pages arrive on /api/graphql (measured 2026-10-12);
+  // profile pages still come through /graphql/query.
+  if (
+    details.url === "https://www.threads.com/graphql/query" ||
+    details.url === "https://www.threads.com/api/graphql"
+  ) {
     if (Array.isArray(jsonData.data?.feedData?.edges)) {
       const data = jsonData.data.feedData.edges.flatMap(
         (i: any) =>
@@ -252,7 +257,11 @@ browser.webRequest.onBeforeRequest.addListener(
       }
 
       // threads
-      if (method === "POST" && url === "https://www.threads.com/graphql/query") {
+      if (
+        method === "POST" &&
+        (url === "https://www.threads.com/graphql/query" ||
+          url === "https://www.threads.com/api/graphql")
+      ) {
         listener(details);
       }
       if (method === "POST" && url === "https://www.threads.com/ajax/route-definition/") {

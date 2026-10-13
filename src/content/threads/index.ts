@@ -5,18 +5,33 @@ import type { PageHandler } from "../handlers";
 import { storageCache } from "../utils/storage";
 import { handleThreadsButton } from "./button";
 
-const LIKE_BUTTON =
-  "M16.5 2C14.8335 2 13.2217 2.70703 12 3.93652C10.7783 2.70704 9.1665 2 7.5 2C3.3785 2 0.5 5.08423 0.5 9.5C0.5 14.1284 4.84516 19.4619 11.311 22.7719C11.5267 22.8827 11.7633 22.9379 12 22.9379C12.2367 22.9379 12.4733 22.8827 12.689 22.7719C19.1548 19.4619 23.5 14.1284 23.5 9.5C23.5 5.08423 20.6217 2 16.5 2ZM12 20.8764C6.30767 17.8962 2.5 13.3467 2.5 9.5C2.5 6.15893 4.4625 4 7.5 4C9.5 4 11.25 5.75 12 7.5C12.75 5.75 14.5 4 16.5 4C19.5377 4 21.5 6.15893 21.5 9.5C21.5 13.3467 17.6923 17.8962 12 20.8764Z";
+// The start of the like (heart) icon's path. Threads has shipped it both as
+// `M16.5 2C14.8335 2 …` and minified as `M16.5 2c-1.666 0-…`, so match only
+// the shared prefix rather than the whole `d`.
+const LIKE_ICON_PATH_PREFIX = "M16.5 2";
 
-function handleList(list: NodeListOf<Element>, iconColor: IconColor) {
+// The action row holds like, reply, repost and share. It is the first ancestor
+// of the like icon with at least that many children; a fixed parent count broke
+// when Threads added a wrapper level.
+const ACTION_ROW_MIN_CHILDREN = 4;
+const ACTION_ROW_MAX_DEPTH = 10;
+
+function findActionRow(node: Element) {
+  let el: Element | null = node.querySelector(`path[d^="${LIKE_ICON_PATH_PREFIX}"]`);
+  for (let depth = 0; el && el !== node && depth < ACTION_ROW_MAX_DEPTH; depth++) {
+    if (el.children.length >= ACTION_ROW_MIN_CHILDREN) return el;
+    el = el.parentElement;
+  }
+  return null;
+}
+
+function handleList(list: Element[], iconColor: IconColor) {
   list.forEach((n) => {
     const node = n.firstElementChild?.firstElementChild;
     if (!node) return;
     // text post doesn't need to add button
     if (node.querySelector("picture") || node.querySelector("video")) {
-      const likeBtn = node.querySelector(`path[d="${LIKE_BUTTON}"]`);
-      const btnContainer =
-        likeBtn?.parentElement?.parentElement?.parentElement?.parentElement?.parentElement;
+      const btnContainer = findActionRow(node);
       if (btnContainer && btnContainer.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
         addCustomBtn(btnContainer, iconColor);
       }
@@ -24,68 +39,30 @@ function handleList(list: NodeListOf<Element>, iconColor: IconColor) {
   });
 }
 
+// Threads keeps previously visited pages mounted but hidden, so posts under a
+// `hidden` ancestor belong to a page the user has navigated away from.
+function visiblePosts(pageletPrefix: string) {
+  return [...document.querySelectorAll(`div[data-pagelet^="${pageletPrefix}"]`)].filter(
+    (n) => !n.closest("[hidden]"),
+  );
+}
+
+// Posts are found by their `data-pagelet` prefix across the whole document.
+// This used to start from `#barcelona-page-layout`, which Threads removed, and
+// chose one prefix per URL. Every prefix is scanned on every page because the
+// multi-column layout shows a profile or a post beside the home feed while the
+// URL stays `/`.
+const POST_PAGELET_PREFIXES = [
+  "threads_logged_out_feed_",
+  "threads_feed_",
+  "threads_search_results_",
+  "threads_post_page_",
+  "threads_profile_posts_timeline_",
+];
+
 function handleThreads(iconColor: IconColor) {
-  const pathname = window.location.pathname;
-  const pathnameList = pathname.split("/").filter((e) => e);
-
-  const isPostDetailPage = pathnameList.length === 3 && pathnameList[1] === "post";
-
-  if (pathname === "/") {
-    const notLoginNode = document.querySelector('div[data-nosnippet="true"]>div>div');
-    if (notLoginNode) {
-      handleList(
-        notLoginNode.querySelectorAll('div[data-pagelet^="threads_logged_out_feed_"]'),
-        iconColor,
-      );
-    } else {
-      const layoutDiv = document.querySelector('div[id="barcelona-page-layout"]');
-      const headerDiv = layoutDiv?.querySelector('div[id="barcelona-header"]');
-      const wrapper = headerDiv?.parentElement?.parentElement?.nextElementSibling?.querySelector(
-        'div[data-visualcompletion="ignore"][data-thumb="1"]',
-      )?.parentElement?.firstElementChild;
-      if (wrapper) {
-        handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_feed_"]'), iconColor);
-      }
-    }
-  } else if (pathname === "/search") {
-    const wrapperNode = document.querySelector(
-      'div[data-thumb="1"][data-visualcompletion="ignore"]',
-    )?.parentElement?.firstElementChild;
-    if (wrapperNode) {
-      handleList(
-        wrapperNode.querySelectorAll('div[data-pagelet^="threads_search_results_"]'),
-        iconColor,
-      );
-    }
-  } else if (isPostDetailPage) {
-    const layout = document.querySelectorAll("#barcelona-page-layout");
-    let wrapper;
-    for (const item of layout) {
-      if (item.parentElement?.hidden) {
-      } else {
-        wrapper = item;
-        break;
-      }
-    }
-    if (wrapper) {
-      handleList(wrapper.querySelectorAll('div[data-pagelet^="threads_post_page_"]'), iconColor);
-    }
-  } else if (pathname.startsWith("/@")) {
-    const layout = document.querySelectorAll("#barcelona-page-layout");
-    let wrapper;
-    for (const item of layout) {
-      if (item.parentElement?.hidden) {
-      } else {
-        wrapper = item;
-        break;
-      }
-    }
-    if (wrapper) {
-      handleList(
-        wrapper.querySelectorAll('div[data-pagelet^="threads_profile_posts_timeline_"]'),
-        iconColor,
-      );
-    }
+  for (const prefix of POST_PAGELET_PREFIXES) {
+    handleList(visiblePosts(prefix), iconColor);
   }
 }
 
