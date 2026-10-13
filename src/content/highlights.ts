@@ -50,10 +50,7 @@ export async function highlightsOnClicked(
             .getAttribute("href")
             ?.split("/")
             .filter((_) => _);
-          // A single remaining segment means a profile link such as
-          // "/username/", so the name is index 0. This read index 1,
-          // which is always undefined for a length-1 array, so it
-          // overwrote the default with undefined and broke out.
+          // A single segment is a profile link (`/username/`).
           if (hrefArr?.length === 1) {
             posterName = hrefArr[0];
             break;

@@ -10,11 +10,7 @@ export interface DownloadParams {
    * `fromUnixSeconds` rather than leave the unit to the reader.
    */
   datetime?: string | null | Date;
-  /**
-   * No longer part of the filename. Kept on the interface so the ~10 call
-   * sites that compute it don't all have to change; drop it (and their
-   * `getMediaName` calls) if you ever want the plumbing gone.
-   */
+  /** Unused in the filename; kept so call sites needn't change. */
   id?: string;
   index?: number;
   type?: MediaType;
@@ -37,8 +33,7 @@ const KNOWN_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif", "mp4", "m
 /**
  * Derives the file extension from the URL path rather than from a fetched
  * blob's MIME type, because the background hands the URL straight to
- * chrome.downloads and never sees a response body. Normalizes jpeg -> jpg,
- * which is what the old `setting_format_replace_jpeg_with_jpg` toggle did.
+ * chrome.downloads and never sees a response body. Normalizes jpeg -> jpg.
  */
 export function getExtensionFromUrl(url: string, fallback = "jpg") {
   try {
@@ -76,15 +71,9 @@ export function fromUnixSeconds(seconds: number) {
 /**
  * `@username`, the per-user download subfolder. Empty when there's no username.
  *
- * The username is always the media's AUTHOR, never the profile you were
- * browsing — a tagged post by @groot on @denchen's page goes to `@groot/`. That
- * keeps one author's media in one place instead of scattering copies across
- * every profile whose tagged grid features them. Callers get this right by
- * resolving from the media payload (`data.owner.username`, `item.user.username`,
- * `res.owner`); `profile.ts` is the sole page-derived case, which is correct
- * because an avatar's author is the page owner. Preserve that when merging
- * upstream: a new download path that passes the page's username would silently
- * misfile rather than error.
+ * Always the media's AUTHOR, never the page browsed (see AGENTS.md "Filename
+ * invariants"). Resolve it from the payload; a new download path that passes
+ * the page's username would silently misfile.
  */
 export function getUserFolder(username?: string) {
   // Instagram usernames are [A-Za-z0-9._] so this is belt-and-braces, but a

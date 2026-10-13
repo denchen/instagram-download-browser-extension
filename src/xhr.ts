@@ -81,7 +81,7 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
     }
   }
 
-  // eslint-disable-next-line prefer-rest-params
+  // oxlint-disable-next-line prefer-rest-params
   return oldXHROpen.apply(this, [].slice.call(arguments) as any);
 };
 

@@ -19,11 +19,9 @@ const manifest = JSON.parse(
   await readFile(`./src/manifest.${platform}.json`, { encoding: "utf8" }),
 );
 
-// Scripts listed under content_scripts run as classic scripts, where an
-// `import` statement is a syntax error that stops the whole file. They get a
-// separate IIFE build, which inlines their dependencies instead of importing
-// shared chunks. Taken from the manifest so a new content script can't be
-// built as ESM by accident; each `foo/bar.js` is built from `src/foo/bar.ts`.
+// content_scripts run as classic scripts, where an `import` stops the whole
+// file, so they get a separate IIFE build. Read from the manifest so a new one
+// can't be built as ESM by accident; `foo/bar.js` is built from `src/foo/bar.ts`.
 const classicEntryPoints = manifest.content_scripts
   .flatMap((script) => script.js)
   .map((file) => `src/${file.replace(/\.js$/, ".ts")}`);

@@ -188,6 +188,16 @@ Downloads are `@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext` in UTC.
   one; an unresolved username files under `@unknown/` with a warning rather than silently dropping
   the folder.
 
+## Comments
+
+- A comment says why the code is the way it is **now**. History (what it used to do, what a fix
+  changed, removed function names) belongs in the commit message or PR.
+- Each invariant has one home, in this file or in the function that enforces it. Other sites point
+  there rather than restating it.
+- No counts ("nine call sites") and no future tense ("#N would…"): both go stale without anything
+  failing.
+- No commented-out code. Git has it.
+
 ## How changes get verified
 
 Most of this cannot be unit-tested — it reads a hostile, shifting DOM and a private API. The test

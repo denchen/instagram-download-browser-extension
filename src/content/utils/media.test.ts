@@ -56,8 +56,7 @@ describe("getImgOrVideoUrl", () => {
   });
 
   // The shapes the stories, highlights, reels, profile-reel and Threads paths
-  // hand over. Each used to inline its own `candidates[0]` and so ignored the
-  // ladder entirely; these assert they now get the largest rendition.
+  // hand over; each must get the largest rendition.
   it("picks the largest rendition when the ladder is not ordered largest-first", () => {
     const item = {
       image_versions2: {
@@ -80,9 +79,7 @@ describe("getImgOrVideoUrl", () => {
     expect(getImgOrVideoUrl({ image_versions2: {} })).toBeUndefined();
   });
 
-  // getUrlFromInfoApi's carousel range check is written against this throw:
-  // an undefined item means the caller indexed past the end, and that must
-  // stay loud rather than resolve to undefined.
+  // See getImgOrVideoUrl: an undefined item must throw.
   it("throws on an undefined item rather than resolving to undefined", () => {
     expect(() => getImgOrVideoUrl(undefined as any)).toThrow(TypeError);
   });

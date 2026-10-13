@@ -152,10 +152,9 @@ export function isFresh(expiresAt: number | null, now = Date.now()) {
 }
 
 /**
- * For the older caches (reels, profile reels, highlights), which store raw
- * media and used to serve an entry however old it was. Those caches persist
- * across restarts, so an entry can outlive its signed URL; downloading it
- * then fails at the CDN instead of reaching the paths that would work.
+ * For the older raw-media caches (reels, profile reels, highlights). They
+ * persist across restarts, so an entry can outlive its signed URL and fail at
+ * the CDN instead of reaching the paths that would work.
  *
  * True means treat the entry as a miss. An item with no readable expiry, or no
  * item at all, is left to the caller as before.

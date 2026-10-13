@@ -43,7 +43,6 @@ async function getUrl(containerNode: HTMLElement) {
   let mediaIndex = -1;
 
   if (mediaList.length === 0) {
-    // single img or video
     res = await getUrlFromInfoApi(containerNode);
     url = res?.url;
     if (!url) {
@@ -51,22 +50,17 @@ async function getUrl(containerNode: HTMLElement) {
         containerNode.querySelector("article  div > video");
       const imgElem = containerNode.querySelector("article  div[role] div > img");
       if (videoElem) {
-        // media type is video
         if (videoElem) {
           url = await getVideoSrc(containerNode, videoElem);
         }
       } else if (imgElem) {
-        // media type is image
         url = imgElem.getAttribute("src");
       } else {
         console.log("Err: not find media at handle post single");
       }
     }
   } else {
-    // multiple media
-    // Same ordering as post.ts: the rendered indicators describe the post on
-    // screen, whereas ?img_index survives client-side navigation between
-    // posts and can therefore name a slide from a different one.
+    // Same tiers 1-2 as post.ts: indicators before ?img_index.
     let dotsList;
     if (checkType() === "pc") {
       dotsList = isPostDetailWithNameInUrl
@@ -80,9 +74,6 @@ async function getUrl(containerNode: HTMLElement) {
       );
     }
 
-    // Was an inline findIndex on classList.length === 2, a hardcoded magic
-    // number. The shared helper checks ariaCurrent first and derives the
-    // class-count baseline dynamically.
     const dotsIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
     const idxFromUrl = new URLSearchParams(window.location.search).get("img_index");
 
@@ -117,10 +108,8 @@ async function getUrl(containerNode: HTMLElement) {
       const videoElem = node.querySelector("video");
       const imgElem = node.querySelector("img");
       if (videoElem) {
-        // media type is video
         url = await getVideoSrc(containerNode, videoElem);
       } else if (imgElem) {
-        // media type is image
         url = imgElem.getAttribute("src");
       }
     }
@@ -162,8 +151,8 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
         username: posterName,
         datetime: postTime,
         id: res?.origin_data?.id || getMediaName(url),
-        // Always indexed: every item in a carousel shares the post's
-        // timestamp, so the ordinal is what keeps their names distinct.
+        // Carousel items share the post's timestamp; the ordinal keeps their
+        // names distinct.
         index: mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
         type: MediaType.Post,
       });

@@ -38,7 +38,6 @@ function processPage() {
   const isDark = cs === "dark" || window.matchMedia("(prefers-color-scheme: dark)").matches;
   const iconColor = isDark ? "white" : "black";
 
-  // Reset activeHandler
   activeHandler = null;
 
   for (const handler of registeredHandlers) {

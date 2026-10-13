@@ -50,26 +50,22 @@ async function postGetUrl(articleNode: HTMLElement) {
   let mediaIndex = -1;
 
   if (articleNode.querySelectorAll("li[style][class]").length === 0) {
-    // single img or video
     res = await getUrlFromInfoApi(articleNode);
     url = res?.url;
     if (!url) {
       const videoElem = articleNode.querySelector<HTMLVideoElement>("article  div > video");
       const imgElem = articleNode.querySelector<HTMLImageElement>("article  div[role] div > img");
       if (videoElem) {
-        // media type is video
         if (videoElem) {
           url = await getVideoSrc(articleNode, videoElem);
         }
       } else if (imgElem) {
-        // media type is image
         url = imgElem.getAttribute("src");
       } else {
         console.log("Err: not find media at handle post single");
       }
     }
   } else {
-    // multiple media
     const isPostView = window.location.pathname.startsWith("/p/");
 
     // Slide index, in descending order of trustworthiness:
@@ -78,9 +74,7 @@ async function postGetUrl(articleNode: HTMLElement) {
     //   2. ?img_index, which is SPA state Instagram does not reset when the
     //      modal arrows move between posts, so it can name a slide from a
     //      previous, longer post;
-    //   3. geometry - whichever <li> currently sits inside the container.
-    // The URL used to be tier 1, which is how a stale index silently picked
-    // the wrong slide, and crashed outright when it pointed past the end.
+    //   3. geometry: the image nearest the container's centre.
     let dotsList: any;
     if (isPostView) {
       dotsList = articleNode.querySelectorAll(
@@ -108,18 +102,10 @@ async function postGetUrl(articleNode: HTMLElement) {
       );
       mediaIndex = +idxFromUrl - 1;
     } else {
-      // Neither indicators nor URL: fall back to whichever slide is on
-      // screen. Nearest-centre rather than strict containment, because at
-      // narrow widths a slide exactly fills the container — measured
-      // article x=210 right=391 with the visible image at x=210 right=391,
-      // so `rect.x > x && rect.right < right` was false for every image and
-      // this path could never succeed.
-      //
-      // Returns a URL with no `res` and no index, so the caller falls back
-      // to DOM-scraped metadata and the filename gets no ` NN` suffix. The
-      // src may also be a smaller rendition; the download log reports the
-      // size when the URL declares one. Degraded but correct, versus
-      // failing outright.
+      // Nearest-centre, not containment: at narrow widths a slide exactly
+      // fills the container (measured), so strict bounds never matched.
+      // Returns no `res` or index, so metadata comes from the DOM and the
+      // filename has no ` NN` suffix. Degraded but correct.
       console.warn("cannot get dotsList!");
       const imgList = [
         ...articleNode.querySelectorAll<HTMLImageElement>(
@@ -165,10 +151,8 @@ async function postGetUrl(articleNode: HTMLElement) {
       const videoElem = node.querySelector("video");
       const imgElem = node.querySelector("img");
       if (videoElem) {
-        // media type is video
         url = await getVideoSrc(articleNode, videoElem);
       } else if (imgElem) {
-        // media type is image
         url = imgElem.getAttribute("src");
       }
     }
@@ -215,8 +199,8 @@ export async function postOnClicked(target: HTMLAnchorElement) {
         username: posterName,
         datetime: postTime,
         id: res?.origin_data?.id || getMediaName(url),
-        // Always indexed: every item in a carousel shares the post's
-        // timestamp, so the ordinal is what keeps their names distinct.
+        // Carousel items share the post's timestamp; the ordinal keeps their
+        // names distinct.
         index: mediaIndex !== undefined && mediaIndex >= 0 ? mediaIndex + 1 : undefined,
         type: MediaType.Post,
       });

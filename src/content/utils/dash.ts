@@ -19,16 +19,14 @@ export interface DashStreams {
  * Picks the tallest video representation and the highest-bandwidth audio one,
  * or null when the manifest offers nothing taller than the progressive file.
  *
- * Height, not bandwidth, decides. Measured 2026-10-10 on photo-with-music
- * stories, the 1080p VP9 stream was sometimes *smaller* than the 720p H.264
- * progressive file (a still image compresses to almost nothing), so the
- * highest bitrate is not always the sharpest.
- *
- * Measured 2026-10-10 across reels, stories and carousel videos, the
- * progressive file is always Instagram's fixed 720p encode (`...C3.720...`)
- * while the manifest tops out at the upload's resolution: 1080p, or 1440p for
- * one reel. Media uploaded at 720p gets a 720p manifest, and this returns null
- * for it, which keeps the plain one-file download.
+ * Height, not bandwidth, decides. Measured 2026-10-10 across reels, stories
+ * and carousel videos:
+ * - On photo-with-music stories the 1080p VP9 stream was sometimes *smaller*
+ *   than the 720p progressive file, so top bitrate isn't always sharpest.
+ * - The progressive file is always the fixed 720p encode (`...C3.720...`);
+ *   the manifest tops out at the upload's resolution (1080p, once 1440p). A
+ *   720p upload gets a 720p manifest, so this returns null and the plain
+ *   one-file download is kept.
  *
  * `progressiveHeight` of 0 means unknown, in which case any video stream wins.
  * No measured manifest topped out below its progressive file.
@@ -88,9 +86,8 @@ function kindOf(rep: Element): "video" | "audio" | null {
 
 /**
  * Manifests by the progressive URL getImgOrVideoUrl handed out for the same
- * media item. That URL is what reaches downloadResource from all nine
- * download paths, so keying on it lets the DASH path find its manifest without
- * every caller having to carry one. Bounded, because a long scroll session
+ * media item. Every download path hands that URL to downloadResource, so
+ * keying on it means no caller has to carry the manifest. Bounded, because a long scroll session
  * resolves many more items than are ever downloaded.
  */
 const manifests = new Map<string, { manifest: string; height: number }>();

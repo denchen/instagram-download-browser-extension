@@ -8,8 +8,7 @@ import type { ReelsMedia } from "../types/global";
 import { findValueByKey, limitMapSize, saveGraphqlQuery, saveStories } from "./fn";
 
 browser.runtime.onInstalled.addListener(async () => {
-  // 1. Initialize default settings. Every remaining setting is a boolean that
-  // defaults on; filenames are no longer configurable on either browser.
+  // Every setting is a boolean that defaults on.
   const result = await browser.storage.sync.get(CONFIG_LIST);
 
   const updates: Record<string, boolean> = {};
@@ -27,7 +26,7 @@ browser.runtime.onInstalled.addListener(async () => {
   // older versions left behind.
   await browser.storage.local.remove("reels");
 
-  // 2. Check permissions (Firefox specific)
+  // Firefox lets the user withhold host permissions; ask for them.
   if (
     !(await browser.permissions.contains({
       origins: ["https://www.instagram.com/*", "https://www.threads.com/*"],
@@ -250,7 +249,7 @@ browser.webRequest.onBeforeRequest.addListener(
         listener(details);
       }
       if (method === "POST" && url === "https://www.instagram.com/graphql/query") {
-        listener(details); // save highlights data and reels data
+        listener(details); // see saveGraphqlQuery
       }
       if (method === "POST" && url === "https://www.instagram.com/ajax/bulk-route-definitions/") {
         listener(details);
@@ -277,12 +276,7 @@ browser.webRequest.onBeforeRequest.addListener(
   ["blocking"],
 );
 
-/**
- * A download that starts successfully can still fail once headers arrive (an
- * expired CDN signature returns 403), by which point download() has already
- * resolved. Log the interruption rather than letting the file silently not
- * appear. Mirrors reportDownloadFailures in ./chrome.ts.
- */
+/** Same as reportDownloadFailures in ./chrome.ts; `onDone` frees a blob URL. */
 function reportDownloadFailures(id: number, filename: string, onDone?: () => void) {
   const onChanged = (delta: {
     id: number;

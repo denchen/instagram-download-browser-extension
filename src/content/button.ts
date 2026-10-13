@@ -119,30 +119,17 @@ export function addVideoDownloadCoverBtn(node: HTMLDivElement) {
 
 /**
  * Downloads a grid video tile's cover image. Reached from handleGlobalClick's
- * `data-video-cover-download` branch, NOT through postOnClicked — so nothing
- * here consults the media API and no API data is available.
+ * `data-video-cover-download` branch (written as `dataset.videoCoverDownload`),
+ * not postOnClicked, so there is no API data.
  *
- * Note the attribute is written as `dataset.videoCoverDownload` in
- * addVideoDownloadCoverBtn and read as the kebab-case
- * `data-video-cover-download` in handleGlobalClick. Same attribute, two
- * spellings, so grepping either form finds only one half of the pair.
- *
- * Both covers reach downloadResource with only a URL, which previously meant no
- * username (an `@unknown/` folder) and no datetime (the timestamp silently
- * became the download time). The username is recoverable from the pathname —
- * the grid only exists at `/<username>/` or `/<username>/reels/` — but the post
- * time is not in the DOM, so MediaType.Cover labels the name instead of
- * pretending the timestamp means something. #3's cache would supply the real
- * `taken_at`, at which point the prefix can stay and the timestamp becomes
- * meaningful.
+ * The post time isn't in the DOM, so MediaType.Cover marks the timestamp as the
+ * download time. The post cache holds `taken_at` for grid posts; looking it up
+ * here would make the timestamp real.
  */
 export function handleVideoCoverDownloadBtn(node: HTMLElement) {
-  // `/<username>/` and `/<username>/reels/` show the page owner's own media,
-  // so the first segment is the author. `/<username>/tagged/` does NOT — those
-  // posts belong to whoever tagged them — and a tile's DOM carries no author,
-  // so that case deliberately passes no username and files under `@unknown/`
-  // rather than misfiling someone else's cover under the page owner. Folders
-  // are the author, never the page browsed; see getUserFolder.
+  // `/<user>/` and `/<user>/reels/` show the owner's media, so the first
+  // segment is the author. `/<user>/tagged/` doesn't, and tiles carry no
+  // author, so pass no username (→ @unknown) rather than misfile.
   const segments = window.location.pathname.split("/").filter((e) => e);
   const username = segments[1] === "tagged" ? undefined : segments[0];
   if (window.location.pathname.split("/")[2] === "reels") {

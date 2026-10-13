@@ -52,7 +52,6 @@ async function getUrl() {
 
   let url, res;
   if (mediaList.length === 0) {
-    // single img or video
     res = await getUrlFromInfoApi(containerNode);
     url = res?.url;
     if (!url) {
@@ -60,19 +59,16 @@ async function getUrl() {
         containerNode.querySelector("article  div > video");
       const imgElem = containerNode.querySelector("article  div[role] div > img");
       if (videoElem) {
-        // media type is video
         if (videoElem) {
           url = await getVideoSrc(containerNode, videoElem);
         }
       } else if (imgElem) {
-        // media type is image
         url = imgElem.getAttribute("src");
       } else {
         console.log("Err: not find media at handle post single");
       }
     }
   } else {
-    // multiple media
     let dotsList;
     if (checkType() === "pc") {
       dotsList = isPostDetailWithNameInUrl
@@ -83,10 +79,7 @@ async function getUrl() {
         `div[role=button][aria-hidden="true"][tabindex="0"]>div>div>div>div:nth-child(2)>div`,
       );
     }
-    // Shared helper rather than an inline classList.length === 2: it checks
-    // ariaCurrent first and derives the class-count baseline dynamically.
-    // The -1 guard matters here because an unguarded -1 reaches
-    // positionsMap[-1] below, which would throw on the fallback path.
+    // Guard -1: it would reach positionsMap[-1] below and throw.
     let mediaIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
     if (mediaIndex < 0) {
       console.warn("Could not read the slide indicators; defaulting to the first slide.");
@@ -112,10 +105,8 @@ async function getUrl() {
       const videoElem = node.querySelector("video");
       const imgElem = node.querySelector("img");
       if (videoElem) {
-        // media type is video
         url = await getVideoSrc(containerNode, videoElem);
       } else if (imgElem) {
-        // media type is image
         url = imgElem.getAttribute("src");
       }
     }
@@ -254,8 +245,7 @@ export class ReelPageHandler implements PageHandler {
         await openInNewTab(url);
       }
     } catch (e) {
-      // Not a swallow: the lines below are a genuine fallback chain. Logged
-      // only so the original cause is visible when the fallback fails too.
+      // Logged so the original cause shows if the fallbacks fail too.
       console.warn(
         "Profile-reel primary path failed; falling back to local data, then page scripts.",
         e,

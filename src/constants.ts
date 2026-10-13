@@ -16,18 +16,10 @@ export enum MediaType {
   Cover = "COVR",
 }
 
-// Filenames are `[<prefix>]<UTC timestamp>[ <index>]`, e.g.
-// `story - 2026.08.12T16.54.23.jpg`. `formatTimestamp` in
-// content/utils/filename.ts builds the timestamp.
-
-// Prepended to the timestamp, per media type. Posts get nothing. Highlights
-// share the story prefix because they are archived stories.
-//
-// Profile and Cover both carry the DOWNLOAD time rather than the post time,
-// because neither source exposes one: an avatar has no post, and a grid tile's
-// DOM holds the thumbnail and a /p/<code>/ link but no timestamp. Their
-// prefixes are what distinguishes a meaningless timestamp from a real one in
-// the filename — without them the name is indistinguishable from a post's.
+// Prepended to the timestamp in the filename (see getFilenameFromUrl). Posts
+// get none; highlights share `story - ` because they are archived stories.
+// `profile - ` and `cover - ` mark names whose timestamp is the download time,
+// since neither source has a post time.
 export const TYPE_FILENAME_PREFIX: Record<MediaType, string> = {
   [MediaType.Post]: "",
   [MediaType.Story]: "story - ",
@@ -42,10 +34,8 @@ export const EXTENSION_ID = "oejjpeobjicdpgaijialfpfcbdnanajk";
 
 export const CLASS_CUSTOM_BUTTON = "custom-btn";
 
-// Shown when a post/carousel download fails. The console carries the precise
-// cause; this only has to say what happened and name the one remedy the user
-// can act on, since a stale ?img_index after using the modal arrows is by far
-// the most common trigger.
+// Shown when a post/carousel download fails. The console has the cause; this
+// names the one remedy a user can act on.
 export const DOWNLOAD_FAILED_MESSAGE =
   "Could not get the media for this post.\n\n" +
   "If you moved between posts using the arrows inside the popup, the page URL is out of sync — " +

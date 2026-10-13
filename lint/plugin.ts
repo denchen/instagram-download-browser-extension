@@ -6,9 +6,7 @@ const SELECTOR_METHODS = new Set(["querySelector", "querySelectorAll"]);
  * Instagram localizes `aria-label`, so a selector keyed on it only matches in
  * one UI language. Select on `data-*`, a class, or an SVG path instead.
  *
- * Replaces an ESLint `no-restricted-syntax` selector whose regex only matched
- * aria-label after a quote, so it missed the usual `[aria-label="Like"]`. This
- * checks every string and template literal anywhere inside the call, so
+ * Checks every string and template literal anywhere inside the call, so
  * `el.querySelector(cond ? '[aria-label="Like"]' : 'x')` is caught too.
  */
 const noAriaLabelSelector = defineRule({
