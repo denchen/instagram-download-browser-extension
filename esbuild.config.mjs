@@ -28,13 +28,15 @@ const classicEntryPoints = manifest.content_scripts
   .flatMap((script) => script.js)
   .map((file) => `src/${file.replace(/\.js$/, ".ts")}`);
 
-const entryPoints = ["src/content/index.ts", "src/popup/index.ts", "src/options/index.ts"];
+const entryPoints = ["src/content/index.ts", "src/popup/index.ts"];
 
 if (platform === "chrome") {
   entryPoints.push("src/background/chrome.ts", "src/xhr.ts");
 }
 if (platform === "firefox") {
-  entryPoints.push("src/background/firefox.ts");
+  // Only Firefox declares options_ui: the page requests host permissions
+  // through browser.permissions, which Chrome doesn't need.
+  entryPoints.push("src/background/firefox.ts", "src/options/index.ts");
 }
 
 const classicCtx = await esbuild.context({
@@ -59,7 +61,10 @@ const ctx = await esbuild.context({
       name: "copy-manifest",
       setup(build) {
         build.onEnd(async () => {
-          await cp("public", `dist/${platform}`, { recursive: true });
+          await cp("public", `dist/${platform}`, {
+            recursive: true,
+            filter: (src) => platform === "firefox" || !src.startsWith("public/options"),
+          });
           const contents = await readFile(`./src/manifest.${platform}.json`, { encoding: "utf8" });
           const replacedContents = contents.replaceAll("__MSG_extVersion__", pkg.version);
           await writeFile(`dist/${platform}/manifest.json`, replacedContents, { encoding: "utf8" });

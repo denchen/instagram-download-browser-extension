@@ -20,7 +20,7 @@ export function limitMapSize(map: Map<any, any>, maxSize: number = 200) {
 }
 
 // save highlights data from json
-export async function saveHighlights(jsonData: Record<string, any>) {
+async function saveHighlights(jsonData: Record<string, any>) {
   if (Array.isArray(jsonData.data?.xdt_api__v1__feed__reels_media__connection?.edges)) {
     const data = (
       jsonData as Highlight.Root
@@ -42,7 +42,7 @@ export async function saveHighlights(jsonData: Record<string, any>) {
 }
 
 // save reels data from json
-export async function saveReels(jsonData: Record<string, any>) {
+async function saveReels(jsonData: Record<string, any>) {
   if (Array.isArray(jsonData.data?.xdt_api__v1__clips__home__connection_v2?.edges)) {
     const data = (jsonData as Reels.Root).data.xdt_api__v1__clips__home__connection_v2.edges.map(
       (i) => i.node.media,
@@ -58,7 +58,7 @@ export async function saveReels(jsonData: Record<string, any>) {
   }
 }
 
-export async function saveProfileReel(jsonData: Record<string, any>) {
+async function saveProfileReel(jsonData: Record<string, any>) {
   if (Array.isArray(jsonData.data?.xdt_api__v1__clips__user__connection_v2?.edges)) {
     const data = (
       jsonData as ProfileReel.Root

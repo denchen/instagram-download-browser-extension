@@ -7,7 +7,7 @@
 // 2025-08-12T16:54:23Z
 export const TAKEN_AT = 1755017663;
 
-export const imageVersions = (name: string) => ({
+const imageVersions = (name: string) => ({
   candidates: [
     { url: `https://cdn.example/${name}_s320x320.jpg`, width: 320, height: 320 },
     { url: `https://cdn.example/${name}_full.jpg`, width: 1440, height: 1800 },

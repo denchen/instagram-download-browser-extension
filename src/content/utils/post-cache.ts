@@ -13,7 +13,7 @@ import { getImgOrVideoUrl, largestCandidate } from "./media";
 export const POST_KEY_PREFIX = "post:";
 /** `[code, expiresAt]` pairs, least recently seen first. */
 export const POST_INDEX_KEY = "posts_index";
-export const POST_CACHE_LIMIT = 2000;
+const POST_CACHE_LIMIT = 2000;
 
 export type PostIndex = [code: string, expiresAt: number | null][];
 
