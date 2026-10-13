@@ -25,6 +25,7 @@
     "dev:chrome": "npx tsc --noEmit && node esbuild.config.mjs chrome --watch",
     "dev:ff": "npx tsc --noEmit && node esbuild.config.mjs firefox --watch",
     "sign:ff": "pnpm run build:ff && web-ext sign --channel=unlisted --source-dir=dist/firefox --artifacts-dir=web-ext-artifacts",
+    "icons": "node scripts/icons.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "oxlint",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@oxlint/plugins": "^1.86.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/firefox-webext-browser": "^143.0.1",
     "chrome-types": "^0.1.450",
     "esbuild": "^0.28.2",
