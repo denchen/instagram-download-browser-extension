@@ -6,13 +6,10 @@
     "target": "ESNext",
     "lib": ["es2022", "dom", "dom.iterable"],
     "moduleResolution": "bundler",
-    //  "sourceMap": true,
-    // "rootDir": "./src",
     "noEmitOnError": true,
-    "allowJs": true,
     "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "types": ["chrome-types", "firefox-webext-browser"]
   },
-  "exclude": ["node_modules", "public", "dist", "./src/*.js", "*.js"]
+  "exclude": ["node_modules", "public", "dist"]
 }

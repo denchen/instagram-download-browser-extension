@@ -205,7 +205,7 @@ export const getDataFromAPI = async (articleNode: HTMLElement) => {
     const infoJson = mediaInfoCache.get(mediaId);
     return infoJson.items[0];
   } catch (e: any) {
-    console.log(`Uncaught in getUrlFromInfoApi(): ${e}\n${e.stack}`);
+    console.log(`Uncaught in getDataFromAPI(): ${e}\n${e.stack}`);
     return null;
   }
 };

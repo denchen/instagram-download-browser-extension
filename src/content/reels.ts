@@ -114,7 +114,7 @@ export class ReelsPageHandler implements PageHandler {
       });
     } catch (e: any) {
       alert("Reels Download Failed!");
-      console.log(`Uncaught in postDetailOnClicked(): ${e}\n${e.stack}`);
+      console.log(`Uncaught in ReelsPageHandler.onCustomButtonClick(): ${e}\n${e.stack}`);
       return;
     }
   }

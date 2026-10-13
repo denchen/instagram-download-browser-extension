@@ -91,7 +91,6 @@ async function addThreads(data: any[]) {
 }
 
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
-  // console.log(message, sender);
   const { type, data, api } = message;
 
   if (sender.origin === "https://www.threads.com") {
