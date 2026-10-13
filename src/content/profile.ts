@@ -5,10 +5,8 @@ async function profileOnClicked(target: HTMLAnchorElement) {
   const arr = window.location.pathname.split("/").filter((e) => e);
   const username =
     arr.length === 1 ? arr[0] : document.querySelector("main header h2")?.textContent;
-  // The header renders the avatar at full resolution (1080×1080 measured
-  // 2026-10-06), so its src is the image to save. Upstream also looked up a
-  // `user_profile_pic_url` cache first, but nothing has written that key since
-  // upstream's c06e1ab (2024), so the lookup always missed.
+  // The header renders the avatar at full resolution (1080×1080, measured
+  // 2026-10-06), so its src is the file.
   const url = document.querySelector("header img")?.getAttribute("src");
   if (typeof url === "string") {
     if (target.className.includes("download-btn")) {
@@ -52,8 +50,7 @@ export class ProfilePageHandler implements PageHandler {
         addCustomBtn(headerRow, iconColor);
       }
     } else if (document.querySelector("main header img") && !this.warnedMissingRow) {
-      // The header has rendered but its layout no longer matches, which used
-      // to mean the avatar buttons vanished with no trace.
+      // Header rendered but its layout changed.
       this.warnedMissingRow = true;
       console.warn(
         "Profile header found, but not the username row with the options button; avatar download buttons not added.",

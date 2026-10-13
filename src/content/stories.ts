@@ -19,7 +19,7 @@ async function storyGetUrl(target: HTMLElement, sectionNode: any) {
       url = sectionNode.querySelector("video > source").getAttribute("src");
     } else if (sectionNode.querySelector('img[decoding="sync"]')) {
       const img = sectionNode.querySelector('img[decoding="sync"]');
-      url = img.srcset.split(/ \d+w/g)[0].trim(); // extract first src from srcset attr. of img
+      url = img.srcset.split(/ \d+w/g)[0].trim();
       if (url && url.length > 0) {
         return url;
       }
@@ -31,7 +31,6 @@ async function storyGetUrl(target: HTMLElement, sectionNode: any) {
   return url;
 }
 
-// 递归搜索包含 rootView 的对象
 function findRootView(obj: Record<string, any>): Record<string, any> | undefined {
   for (const key in obj) {
     if (key === "rootView") {

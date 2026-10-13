@@ -41,26 +41,14 @@ const findAppId = () => {
 };
 
 /**
- * The post's shortcode: taken from the URL where the URL names it, and scraped
- * from the DOM only when it does not.
+ * The post's shortcode: read from the URL when it names one (`/p/<code>/`,
+ * `/<username>/p/<code>/`), otherwise scraped from the container's links.
  *
- * The DOM scan previously returned the *first* `/p/<code>/` link in the
- * container, which is correct only when the container holds exactly one post.
- * Callers pass containers that can hold several — `post-detail.ts` and
- * `profile-reel.ts` both pass all of `section main`, and a profile grid tile's
- * ancestor <article> can span the whole grid — so a first-match could resolve a
- * different post than the one clicked and download its media under a
- * completely plausible filename.
- *
- * Two changes. `/p/<code>/` and `/<username>/p/<code>/` are now read straight
- * off the pathname, which is exact and skips the scan entirely for detail pages.
- * And when the scan does run, more than one distinct code means the click is
- * ambiguous, so it refuses instead of guessing: failing visibly beats
- * downloading the wrong post.
- *
- * Refusing is not the ideal end state for a grid, where the right answer is the
- * post link nearest the clicked element. That needs `target` threaded through
- * getDataFromAPI and getUrlFromInfoApi, and is left as a follow-up.
+ * Containers can hold several posts (`section main` from post-detail.ts and
+ * profile-reel.ts, or a grid tile's ancestor <article>), so more than one
+ * distinct code refuses rather than guessing a plausible wrong post. For a
+ * grid, the better answer is the link nearest the click, which needs `target`
+ * threaded through getDataFromAPI and getUrlFromInfoApi.
  */
 export function findPostId(articleNode: HTMLElement, pathname = window.location.pathname) {
   if (pathname.startsWith("/reels/")) {
@@ -218,12 +206,8 @@ export const getUrlFromInfoApi = async (
   if (!data) return null;
 
   if ("carousel_media" in data) {
-    // multi-media post
-    // Math.max only bounds this below. An index past the end yields
-    // undefined and throws in getImgOrVideoUrl, which is the crash seen
-    // when a stale ?img_index survives client-side navigation from a
-    // longer carousel to a shorter one. Refuse rather than clamp: clamping
-    // would quietly download a slide the user is not looking at.
+    // Refuse an out-of-range index (a stale ?img_index from a longer carousel)
+    // rather than clamp, which would download a slide the user isn't viewing.
     if (mediaIdx >= data.carousel_media.length) {
       console.warn(
         `Carousel index ${mediaIdx} is out of range for a post with ${data.carousel_media.length} items. ` +
@@ -243,7 +227,6 @@ export const getUrlFromInfoApi = async (
       origin_data: data,
     };
   } else {
-    // single media post
     return {
       ...data,
       url: getImgOrVideoUrl(data),
@@ -254,10 +237,9 @@ export const getUrlFromInfoApi = async (
 };
 
 /**
- * Fetches inside the page and saves through <a download>. Cannot produce a
- * subfolder — Chrome strips path separators from the download attribute — so
- * this is only for MediaSource blobs (which can't leave the page) and as a
- * fallback when the background is unreachable.
+ * Fallback when the background is unreachable or rejects the download: fetches
+ * in-page and saves through <a download>, which can't create the @username/
+ * folder (Chrome strips path separators from the attribute).
  */
 function downloadInPage(url: string, filename: string) {
   fetch(url, {
@@ -278,10 +260,8 @@ function downloadInPage(url: string, filename: string) {
 export async function downloadResource(params: DownloadParams) {
   const { url, username } = params;
 
-  // getImgOrVideoUrl returns undefined for an item carrying neither a video
-  // nor an image ladder. Every line below dereferences `url`, so without this
-  // the symptom is a TypeError from describeRendition or .startsWith - loud,
-  // but naming neither the cause nor the post it came from.
+  // getImgOrVideoUrl returns undefined for an item with no media; name the
+  // cause instead of failing with a TypeError below.
   if (!url) {
     console.error(
       "No media URL to download: the payload held neither video_versions nor image_versions2.candidates.",
@@ -293,9 +273,8 @@ export async function downloadResource(params: DownloadParams) {
   console.log(`Downloading${describeRendition(url)}: ${url}`);
   const filename = getFilenameFromUrl(params);
 
-  // A blob: URL is a MediaSource stream owned by the page; the background
-  // has no way to fetch it, so these keep the anchor path and land flat in
-  // the downloads root rather than under @username/.
+  // A blob: URL is a MediaSource stream owned by the page, which the
+  // background can't fetch, so it saves to the downloads root.
   if (url.startsWith("blob:")) {
     console.warn(
       `In-page video stream, so this saves to the downloads root with no @username/ folder — an <a download> cannot create directories: ${filename}.mp4`,
@@ -304,14 +283,9 @@ export async function downloadResource(params: DownloadParams) {
     return;
   }
 
-  // An unresolved username used to mean no folder at all, silently, so the
-  // file landed in the downloads root with nothing explaining why. Several
-  // paths can get here without a name: the DOM scrapes in post.ts,
-  // post-detail.ts and profile-reel.ts all rely on deep selectors that can
-  // miss, and post.ts's geometric fallback returns no API data at all, which
-  // forces those scrapes. Fall back to @unknown so the root stays clean and
-  // the folder name itself flags the problem - matching what the API path
-  // already does when it cannot identify an owner.
+  // No username (a DOM scrape missed, or post.ts's geometric fallback had no
+  // API data): file under @unknown so the folder itself flags it, as the API
+  // path does.
   let folder = getUserFolder(username);
   if (!folder) {
     console.warn(

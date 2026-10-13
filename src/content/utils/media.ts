@@ -4,16 +4,12 @@
 import { rememberDashManifest } from "./dash";
 
 /**
- * Instagram returns several renditions of every photo. They have long been
- * ordered largest-first, so `candidates[0]` is normally the original — but
- * that is a convention, not a contract, and if it ever changed every download
- * would silently shrink. Pick by pixel area instead, falling back to the first
- * entry when dimensions are missing.
+ * Picks the largest photo rendition by pixel area. Largest-first ordering is a
+ * convention, not a contract; if it changed, `candidates[0]` would silently
+ * shrink every download. Falls back to the first entry when dimensions are
+ * missing, and returns undefined for a missing or empty ladder.
  *
- * Returns undefined for a missing or empty ladder, so the callers that already
- * tolerated an absent `image_versions2` keep doing so.
- *
- * Deliberately NOT applied to video_versions — see getImgOrVideoUrl.
+ * Not applied to video_versions; see getImgOrVideoUrl.
  */
 export function largestCandidate(candidates?: Record<string, any>[]) {
   if (!candidates || candidates.length === 0) return undefined;
@@ -25,47 +21,25 @@ export function largestCandidate(candidates?: Record<string, any>[]) {
 }
 
 /**
- * The single place that decides which rendition of a media item to download:
- * the video if there is one, otherwise the largest photo rendition.
+ * The one place that picks which rendition of a media item to download: the
+ * video if there is one, otherwise the largest photo. Every download path must
+ * call this rather than inline `video_versions?.[0] || candidates[0]` (#1).
  *
- * Every download path funnels through here. It did not until 2026-10-04 —
- * stories, highlights, reels, profile reels and Threads each carried their own
- * inline copy of `video_versions?.[0].url || image_versions2.candidates[0].url`,
- * so `largestCandidate` covered one of nine call sites and the other eight kept
- * the silent-downscale exposure it was written to remove (#1). Add a new
- * download path by calling this, not by writing a tenth copy.
+ * `item` is not optional-chained: an undefined item means an index past the end
+ * of a carousel, which must throw. Only the fields inside an item are optional.
+ * An empty `video_versions` falls through to the cover image rather than
+ * throwing.
  *
- * `item` itself is deliberately not optional-chained: an undefined item means a
- * caller indexed past the end of a carousel, and the TypeError that raises is
- * the loud failure `getUrlFromInfoApi`'s range check is written against. Only
- * the structures *inside* a real item are treated as optional.
- *
- * A present-but-empty `video_versions` falls through to the cover image rather
- * than throwing. Three of the eight inlined copies already behaved that way and
- * five threw; falling through is the one of the two that cannot crash, and the
- * file extension still shows what arrived.
- *
- * `video_versions` takes `[0]`, and for stories and highlights that is correct
- * for a duller reason than it looks: the entries are not renditions at all.
- * Measured 2026-10-05 over 65 cached media, every one carried exactly three
- * entries typed 101, 102 and 103 whose `url` values were byte-identical to each
- * other, signature and expiry included — one file, described three times. There
- * is nothing to choose between, no width/height on any entry, and no size token
- * in the URLs. So `type` does not denote an encoding to pick from here, and
- * largest-area selection has no subject rather than being merely unreliable.
- *
- * Reels and carousel videos turned out the same when measured 2026-10-10: three
- * entries, one URL, tagged `xpv_progressive...C3.720`. The progressive file is
- * a fixed 720p H.264 encode for every video type, and anything sharper exists
- * only in `video_dash_manifest`, which is why the manifest is remembered here
- * for downloadResource to use. See #1.
+ * `video_versions[0]` is fine because there is nothing to choose between.
+ * Measured 2026-10-05 (stories, highlights) and 2026-10-10 (reels, carousel
+ * videos): three entries typed 101/102/103 with one byte-identical URL and no
+ * dimensions, a fixed 720p progressive H.264 file. Anything sharper exists only
+ * in `video_dash_manifest`, remembered here for downloadResource.
  */
 export function getImgOrVideoUrl(item: Record<string, any>) {
   const video = item.video_versions?.[0];
   if (video?.url) {
-    // The progressive file is always 720p; a taller rendition exists only in
-    // the DASH manifest. Remember it against this URL so downloadResource can
-    // offer it — see pickDashStreams.
+    // See pickDashStreams.
     if (typeof item.video_dash_manifest === "string") {
       rememberDashManifest(video.url, item.video_dash_manifest, Number(video.height) || 0);
     }
@@ -75,24 +49,15 @@ export function getImgOrVideoUrl(item: Record<string, any>) {
 }
 
 /**
- * Extracts the rendition size Instagram encodes in a URL — `stp=..._s150x150`,
- * or a `/s640x640/` path segment — so it can be read off the download log
- * without eyeballing a 400-character URL.
+ * Extracts the rendition size encoded in a URL (`stp=..._s150x150` or a
+ * `/s640x640/` segment) for the download log.
  *
- * Reports the size, deliberately without a verdict. Calling a rendition
- * "downscaled" requires the post's candidate ladder, and the only path that
- * yields a sized URL is the DOM fallback — which runs precisely because the
- * media API lookup failed, so the ladder is unavailable exactly where the
- * judgement would be needed.
+ * Reports the size without a verdict. Judging "downscaled" needs the candidate
+ * ladder, and only the DOM fallback yields a sized URL, where the ladder isn't
+ * available (the post cache keeps only the largest rendition). A fixed 1080
+ * threshold was tried and was wrong: originals reach 4032x3024 (#2).
  *
- * An earlier version guessed with a 1080 constant and was wrong: measured
- * originals run to 3072x4096 and 4032x3024, so 1080 is one rung on a 14-rung
- * ladder rather than the ceiling, and the check stayed silent on the very case
- * it existed to catch (#2). A real verdict needs the cache from #3, which would
- * put the ladder in reach on the fallback path.
- *
- * Silence here means no size token was present, which is not proof of a
- * full-resolution download. File size remains the reliable tell.
+ * No size token is not proof of full resolution; file size is the tell.
  */
 export function describeRendition(url: string) {
   const match = url.match(/[_/][sp](\d{2,4})x(\d{2,4})/);

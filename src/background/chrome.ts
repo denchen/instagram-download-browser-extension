@@ -5,8 +5,7 @@ import { CONFIG_LIST, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../constan
 chrome.runtime.onInstalled.addListener(async () => {
   const result = await chrome.storage.sync.get(CONFIG_LIST);
 
-  // Every remaining setting is a boolean that defaults on. The filename and
-  // datetime format strings are gone — naming is no longer configurable.
+  // Every setting is a boolean that defaults on.
   const updates: Record<string, boolean> = {};
   CONFIG_LIST.forEach((i) => {
     if (result[i] === undefined) {
@@ -55,9 +54,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false;
   }
   if (type === MESSAGE_FILE_DOWNLOAD) {
-    // `filename` may contain a subdirectory relative to the downloads root,
-    // which is the whole reason single-file saves come through here instead
-    // of using an <a download> in the content script.
+    // See MESSAGE_FILE_DOWNLOAD.
     void (async () => {
       try {
         const id = await chrome.downloads.download({
@@ -150,10 +147,8 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             break;
         }
       } catch (e) {
-        // This guards JSON.parse and every (awaited) saver above, so
-        // a throw means an intercepted response silently never reached
-        // the cache. The symptom shows up much later as a DOM fallback
-        // rather than as an error, which is why it is worth a line here.
+        // Covers JSON.parse and every saver. Otherwise a failure only shows
+        // up much later as a silent DOM fallback.
         console.warn(
           `Failed to process an intercepted ${api} response; its data was not cached.`,
           e,

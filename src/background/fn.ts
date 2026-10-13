@@ -34,9 +34,8 @@ async function saveHighlights(jsonData: Record<string, any>) {
     limitMapSize(newMap, 200);
     await chrome.storage.local.set({ highlights_data: [...newMap] });
 
-    //? The presentation stories in home page top url is /stories/{username} now
-    //? before was /stories/highlights/{pk}
-    //? so we need to save the data to stories_reels_media
+    // The home page's story tray links to /stories/{username}, so highlights
+    // are saved as stories too.
     await saveStoriesToLocal(data);
   }
 }

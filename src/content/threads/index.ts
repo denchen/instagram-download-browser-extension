@@ -47,11 +47,9 @@ function visiblePosts(pageletPrefix: string) {
   );
 }
 
-// Posts are found by their `data-pagelet` prefix across the whole document.
-// This used to start from `#barcelona-page-layout`, which Threads removed, and
-// chose one prefix per URL. Every prefix is scanned on every page because the
-// multi-column layout shows a profile or a post beside the home feed while the
-// URL stays `/`.
+// Posts are found by `data-pagelet` prefix across the whole document. Every
+// prefix is scanned on every page: the multi-column layout shows a profile or
+// post beside the home feed while the URL stays `/`.
 const POST_PAGELET_PREFIXES = [
   "threads_logged_out_feed_",
   "threads_feed_",
