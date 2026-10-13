@@ -230,15 +230,7 @@ browser.webRequest.onBeforeRequest.addListener(
   (details) => {
     try {
       const { method, url } = details;
-      const { pathname } = new URL(url);
 
-      if (
-        method === "GET" &&
-        pathname.startsWith("/api/v1/feed/user/") &&
-        pathname.endsWith("/username/")
-      ) {
-        listener(details); // get user hd_profile_pic_url_info
-      }
       if (
         method === "GET" &&
         url.startsWith("https://www.instagram.com/api/v1/feed/reels_media/?reel_ids=")

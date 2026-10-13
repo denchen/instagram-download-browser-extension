@@ -113,7 +113,7 @@ pnpm run fmt            # oxfmt
 pnpm test               # vitest
 ```
 
-CI runs lint, format check, typecheck and tests on every pull request.
+CI runs format check, lint, typecheck, tests and both builds on every pull request.
 
 ## Thanks
 
