@@ -6,15 +6,21 @@ export const CONFIG_LIST = [
   "setting_video_highest_quality",
 ];
 
-export enum MediaType {
-  Post = "POST",
-  Story = "STOR",
-  Reel = "REEL",
-  Highlight = "HGHT",
-  Threads = "THRD",
-  Profile = "PROF",
-  Cover = "COVR",
-}
+// A const object rather than an `enum` so the file is erasable TypeScript:
+// `enum` is the one construct here that emits runtime code of its own.
+// Call sites still read `MediaType.Post`, and `MediaType` still names the
+// type, but it is now a union of the literals rather than a nominal type.
+export const MediaType = {
+  Post: "POST",
+  Story: "STOR",
+  Reel: "REEL",
+  Highlight: "HGHT",
+  Threads: "THRD",
+  Profile: "PROF",
+  Cover: "COVR",
+} as const;
+
+export type MediaType = (typeof MediaType)[keyof typeof MediaType];
 
 // Prepended to the timestamp in the filename (see getFilenameFromUrl). Posts
 // get none; highlights share `story - ` because they are archived stories.
