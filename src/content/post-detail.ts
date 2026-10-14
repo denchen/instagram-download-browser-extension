@@ -105,12 +105,16 @@ async function getUrl(containerNode: HTMLElement) {
       );
 
       const node = positionsMap[mediaIndex];
-      const videoElem = node.querySelector("video");
-      const imgElem = node.querySelector("img");
-      if (videoElem) {
-        url = await getVideoSrc(containerNode, videoElem);
-      } else if (imgElem) {
-        url = imgElem.getAttribute("src");
+      if (node) {
+        const videoElem = node.querySelector("video");
+        const imgElem = node.querySelector("img");
+        if (videoElem) {
+          url = await getVideoSrc(containerNode, videoElem);
+        } else if (imgElem) {
+          url = imgElem.getAttribute("src");
+        }
+      } else {
+        console.warn(`no carousel slide at index ${mediaIndex}; refusing to guess`);
       }
     }
   }

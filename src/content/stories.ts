@@ -162,9 +162,9 @@ export class StoriesPageHandler implements PageHandler {
             const innerHTML = script.innerHTML;
             const data = JSON.parse(innerHTML);
             if (innerHTML.includes("xdt_api__v1__feed__reels_media")) {
-              const res = findStories(data);
-              if (res) {
-                handleMedia(res.reels_media[0], mediaIndex);
+              const reel = findStories(data)?.reels_media[0];
+              if (reel) {
+                handleMedia(reel, mediaIndex);
                 return;
               }
             }
@@ -200,8 +200,8 @@ export class StoriesPageHandler implements PageHandler {
       const mediaId = pathnameArr.at(-1)!;
 
       for (const item of stories_reels_media_data.values()) {
-        for (let i = 0; i < item.items.length; i++) {
-          if (item.items[i].pk === mediaId) {
+        for (const [i, media] of item.items.entries()) {
+          if (media.pk === mediaId) {
             const result = handleMedia(item, i);
             if (result) return;
           }
@@ -213,11 +213,11 @@ export class StoriesPageHandler implements PageHandler {
           const innerHTML = script.innerHTML;
           const data = JSON.parse(innerHTML);
           if (innerHTML.includes("xdt_api__v1__feed__reels_media")) {
-            const res = findStories(data);
-            if (res) {
+            const reel = findStories(data)?.reels_media[0];
+            if (reel) {
               handleMedia(
-                res.reels_media[0],
-                res.reels_media[0].items.findIndex((i) => i.pk === mediaId),
+                reel,
+                reel.items.findIndex((i) => i.pk === mediaId),
               );
               return;
             }
@@ -258,10 +258,10 @@ export class StoriesPageHandler implements PageHandler {
     }
 
     const videos = wrapperDiv.querySelectorAll("video");
-    for (let i = 0; i < videos.length; i++) {
-      const videoPlayerMaskDiv = videos[i].closest("section")?.querySelector('div[role="group"]');
+    for (const video of videos) {
+      const videoPlayerMaskDiv = video.closest("section")?.querySelector('div[role="group"]');
       if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-        handleVideoMaskClip(videoPlayerMaskDiv, videos[i], {
+        handleVideoMaskClip(videoPlayerMaskDiv, video, {
           onVolumeChange: handleStoriesVideoVolumeChange,
           bottomDiv:
             wrapperDiv.querySelector(shareIconSelector)?.parentNode?.parentNode?.parentNode

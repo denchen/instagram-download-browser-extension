@@ -58,7 +58,7 @@ function handleGlobalClick(e: MouseEvent) {
         handleVideoCoverDownloadBtn(btn.parentElement!);
         return;
       }
-      if (activeHandler && activeHandler.onCustomButtonClick) {
+      if (activeHandler?.onCustomButtonClick) {
         activeHandler.onCustomButtonClick(btn).catch(console.error);
       }
     }

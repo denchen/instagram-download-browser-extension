@@ -1,9 +1,9 @@
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
 import { cachedUrlExpired } from "./utils/post-cache";
-import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
+import { fromUnixSeconds, type DownloadParams, getMediaName } from "./utils/filename";
 import { getCurrentStepFromDotsList } from "./utils/dom";
 import { getImgOrVideoUrl } from "./utils/media";
-import { ProfileReel } from "../types/profileReel";
+import type { ProfileReel } from "../types/profileReel";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from "../types/global";
 import { handleVideoMaskClip } from "./utils/video";
@@ -79,7 +79,7 @@ async function getUrl() {
         `div[role=button][aria-hidden="true"][tabindex="0"]>div>div>div>div:nth-child(2)>div`,
       );
     }
-    // Guard -1: it would reach positionsMap[-1] below and throw.
+    // Guard -1: the DOM fallback below has no slide at a negative index.
     let mediaIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
     if (mediaIndex < 0) {
       console.warn("Could not read the slide indicators; defaulting to the first slide.");
@@ -102,12 +102,16 @@ async function getUrl() {
       );
 
       const node = positionsMap[mediaIndex];
-      const videoElem = node.querySelector("video");
-      const imgElem = node.querySelector("img");
-      if (videoElem) {
-        url = await getVideoSrc(containerNode, videoElem);
-      } else if (imgElem) {
-        url = imgElem.getAttribute("src");
+      if (node) {
+        const videoElem = node.querySelector("video");
+        const imgElem = node.querySelector("img");
+        if (videoElem) {
+          url = await getVideoSrc(containerNode, videoElem);
+        } else if (imgElem) {
+          url = imgElem.getAttribute("src");
+        }
+      } else {
+        console.warn(`no carousel slide at index ${mediaIndex}; refusing to guess`);
       }
     }
   }
@@ -266,12 +270,12 @@ export class ReelPageHandler implements PageHandler {
     if (!setting_enable_video_controls) return;
 
     const videos = (dialogNode || document).querySelectorAll("video");
-    for (let i = 0; i < videos.length; i++) {
-      const videoPlayerMaskDiv = videos[i]
+    for (const video of videos) {
+      const videoPlayerMaskDiv = video
         .closest('[tabindex="-1"]')
         ?.querySelector('div[role="group"]');
       if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-        handleVideoMaskClip(videoPlayerMaskDiv, videos[i]);
+        handleVideoMaskClip(videoPlayerMaskDiv, video);
       }
     }
   }

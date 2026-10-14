@@ -61,8 +61,8 @@ export function handleVideoMaskClip(
   videoPlayerMaskDiv: HTMLDivElement,
   videoTarget: HTMLVideoElement,
   customOptions: {
-    bottomDiv?: Node | null;
-    onVolumeChange?: (e: Event) => void;
+    bottomDiv?: Node | null | undefined;
+    onVolumeChange?: ((e: Event) => void) | undefined;
   } = {},
 ) {
   videoTarget.controls = true;

@@ -32,7 +32,7 @@ function handleList(list: Element[], iconColor: IconColor) {
     // text post doesn't need to add button
     if (node.querySelector("picture") || node.querySelector("video")) {
       const btnContainer = findActionRow(node);
-      if (btnContainer && btnContainer.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
+      if (btnContainer?.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
         addCustomBtn(btnContainer, iconColor);
       }
     }

@@ -1,6 +1,11 @@
 import { MESSAGE_BLOB_DOWNLOAD, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../../constants";
 import { type DashStreams, dashManifestFor, pickDashStreams } from "./dash";
-import { DownloadParams, getExtensionFromUrl, getFilenameFromUrl, getUserFolder } from "./filename";
+import {
+  type DownloadParams,
+  getExtensionFromUrl,
+  getFilenameFromUrl,
+  getUserFolder,
+} from "./filename";
 import { describeRendition, getImgOrVideoUrl } from "./media";
 import { POST_KEY_PREFIX, isFresh, postExpiry, postsFromEmbedded, slimPost } from "./post-cache";
 import { storageCache } from "./storage";
@@ -14,10 +19,10 @@ export async function openInNewTab(url: string) {
 }
 
 function forceDownload(blob: string, filename: string, extension: string) {
-  extension = extension.replace("jpeg", "jpg");
+  const ext = extension.replace("jpeg", "jpg");
   const a = document.createElement("a");
   a.href = blob;
-  a.download = `${filename}.${extension}`;
+  a.download = `${filename}.${ext}`;
   document.body.appendChild(a);
   a.click();
   setTimeout(() => {
@@ -32,8 +37,8 @@ const mediaIdCache: Map<string, string> = new Map(); // key: post id, value: med
 const findAppId = () => {
   const appIdPattern = /"X-IG-App-ID":"([\d]+)"/;
   const bodyScripts: NodeListOf<HTMLScriptElement> = document.querySelectorAll("body > script");
-  for (let i = 0; i < bodyScripts.length; ++i) {
-    const match = bodyScripts[i].text.match(appIdPattern);
+  for (const script of bodyScripts) {
+    const match = script.text.match(appIdPattern);
     if (match) return match[1];
   }
   console.log("Cannot find app id");
@@ -71,12 +76,12 @@ export function findPostId(articleNode: HTMLElement, pathname = window.location.
     const link = anchor.getAttribute("href");
     if (!link) continue;
     const post = link.match(/\/p\/([^/]+)\//);
-    if (post) {
+    if (post?.[1]) {
       codes.add(post[1]);
       continue;
     }
     const segments = link.split("/").filter((e) => e);
-    if (segments.length === 3 && segments[1] === "reel") {
+    if (segments.length === 3 && segments[1] === "reel" && segments[2]) {
       codes.add(segments[2]);
     }
   }
@@ -103,8 +108,8 @@ const findMediaId = async (postId: string) => {
     const idMatch = text.match(mediaIdPattern);
     if (!idMatch) return null;
     let mediaId = null;
-    for (let i = 0; i < idMatch.length; ++i) {
-      if (idMatch[i]) mediaId = idMatch[i];
+    for (const candidate of idMatch) {
+      if (candidate) mediaId = candidate;
     }
     if (!mediaId) return null;
     mediaIdCache.set(postId, mediaId);
@@ -254,7 +259,7 @@ function downloadInPage(url: string, filename: string) {
       const blobUrl = window.URL.createObjectURL(blob);
       forceDownload(blobUrl, filename, extension || "jpg");
     })
-    .catch((e) => console.error(e));
+    .catch((e: unknown) => console.error(e));
 }
 
 export async function downloadResource(params: DownloadParams) {
@@ -381,8 +386,8 @@ function isFirefox() {
 }
 
 export const checkType = () => {
-  if (navigator && navigator.userAgent && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
-    if (navigator && navigator.userAgent && /(iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent)) {
+  if (navigator?.userAgent && /Mobi|Android|iPhone/i.test(navigator.userAgent)) {
+    if (navigator?.userAgent && /(iPhone|iPad|iPod|iOS)/i.test(navigator.userAgent)) {
       return "ios";
     } else {
       return "android";

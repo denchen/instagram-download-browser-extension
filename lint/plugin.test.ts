@@ -6,7 +6,7 @@ import plugin from "./plugin";
 RuleTester.describe = describe;
 RuleTester.it = it;
 
-const rule = plugin.rules["no-aria-label-selector"];
+const rule = plugin.rules["no-aria-label-selector"]!;
 const error = { messageId: "ariaLabel" };
 
 new RuleTester().run("no-aria-label-selector", rule, {

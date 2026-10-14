@@ -115,7 +115,7 @@ async function postGetUrl(articleNode: HTMLElement) {
       if (imgList.length > 0) {
         const bounds = articleNode.getBoundingClientRect();
         const centre = bounds.x + bounds.width / 2;
-        let closest = imgList[0];
+        let closest: HTMLImageElement | undefined;
         let closestDistance = Infinity;
         for (const item of imgList) {
           const rect = item.getBoundingClientRect();
@@ -125,7 +125,7 @@ async function postGetUrl(articleNode: HTMLElement) {
             closest = item;
           }
         }
-        url = closest.getAttribute("src");
+        url = closest?.getAttribute("src");
         if (url) return { url };
       }
       return null;
@@ -148,6 +148,10 @@ async function postGetUrl(articleNode: HTMLElement) {
       );
 
       const node = positionsMap[mediaIndex];
+      if (!node) {
+        console.warn(`no carousel slide at index ${mediaIndex}; refusing to guess`);
+        return null;
+      }
       const videoElem = node.querySelector("video");
       const imgElem = node.querySelector("img");
       if (videoElem) {
@@ -282,12 +286,12 @@ export class PostPageHandler implements PageHandler {
     if (!setting_enable_video_controls) return;
 
     const videos = (dialogNode || document).querySelectorAll("video");
-    for (let i = 0; i < videos.length; i++) {
-      const videoPlayerMaskDiv = videos[i]
+    for (const video of videos) {
+      const videoPlayerMaskDiv = video
         .closest('[tabindex="-1"]')
         ?.querySelector('div[role="group"]');
       if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-        handleVideoMaskClip(videoPlayerMaskDiv, videos[i]);
+        handleVideoMaskClip(videoPlayerMaskDiv, video);
       }
     }
   }

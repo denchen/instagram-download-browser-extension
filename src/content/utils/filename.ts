@@ -1,19 +1,20 @@
-import { MediaType, TYPE_FILENAME_PREFIX } from "../../constants";
+import type { MediaType } from "../../constants";
+import { TYPE_FILENAME_PREFIX } from "../../constants";
 
 export interface DownloadParams {
   url: string;
-  username?: string;
+  username?: string | undefined;
   /**
    * A `Date`, or a string `Date` can parse (in practice a `<time datetime>`
    * attribute). Numbers are deliberately not accepted: the API's `taken_at`
    * is in seconds while `Date` takes milliseconds, so pass it through
    * `fromUnixSeconds` rather than leave the unit to the reader.
    */
-  datetime?: string | null | Date;
+  datetime?: string | null | Date | undefined;
   /** Unused in the filename; kept so call sites needn't change. */
-  id?: string;
-  index?: number;
-  type?: MediaType;
+  id?: string | undefined;
+  index?: number | undefined;
+  type?: MediaType | undefined;
 }
 
 export function getMediaName(url: string) {

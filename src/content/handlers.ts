@@ -3,7 +3,7 @@ import { StoriesPageHandler } from "./stories";
 import { ReelsPageHandler } from "./reels";
 import { ReelPageHandler } from "./profile-reel";
 import { ProfilePageHandler } from "./profile";
-import { IconColor } from "../types/global";
+import type { IconColor } from "../types/global";
 import { FeedPageHandler } from "./homefeed";
 import { ThreadsPageHandler } from "./threads";
 
