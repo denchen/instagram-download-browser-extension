@@ -6,7 +6,7 @@ import {
   openInNewTab,
 } from "./utils/fn";
 import { cachedUrlExpired } from "./utils/post-cache";
-import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
+import { fromUnixSeconds, type DownloadParams, getMediaName } from "./utils/filename";
 import { getImgOrVideoUrl } from "./utils/media";
 import type { Reels } from "../types/reels";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";

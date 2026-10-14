@@ -2,7 +2,11 @@ import type { ReelsMedia } from "../types/global";
 import { findValueByKey, saveGraphqlQuery, saveStories } from "./fn";
 import { CONFIG_LIST, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../constants";
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(() => {
+  void applyDefaultSettings();
+});
+
+async function applyDefaultSettings() {
   const result = await chrome.storage.sync.get(CONFIG_LIST);
 
   // Every setting is a boolean that defaults on.
@@ -20,7 +24,7 @@ chrome.runtime.onInstalled.addListener(async () => {
   // `reels` was written alongside `reels_media` but never read; clear what
   // older versions left behind.
   await chrome.storage.local.remove("reels");
-});
+}
 
 chrome.runtime.onStartup.addListener(() => {
   void chrome.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
@@ -137,7 +141,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             await saveGraphqlQuery(jsonData);
             break;
           // presentation stories in home page top
-          case "/api/v1/feed/reels_media/?reel_ids=":
+          case "/api/v1/feed/reels_media/?reel_ids=": {
             const { reels_media } = await chrome.storage.local.get(["reels_media"]);
             const newArr = (reels_media || []).filter(
               (i: ReelsMedia.ReelsMedum) =>
@@ -145,6 +149,7 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
             );
             await chrome.storage.local.set({ reels_media: [...newArr, ...jsonData.reels_media] });
             break;
+          }
         }
       } catch (e) {
         // Covers JSON.parse and every saver. Otherwise a failure only shows

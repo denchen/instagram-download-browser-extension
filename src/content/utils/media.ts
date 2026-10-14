@@ -17,7 +17,7 @@ export function largestCandidate(candidates?: Record<string, any>[]) {
     const bestArea = (best.width ?? 0) * (best.height ?? 0);
     const currentArea = (current.width ?? 0) * (current.height ?? 0);
     return currentArea > bestArea ? current : best;
-  }, candidates[0]);
+  });
 }
 
 /**

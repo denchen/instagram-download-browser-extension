@@ -16,8 +16,8 @@ export function getParentSectionNode(node: HTMLElement | null) {
 
 export function getCurrentStepFromDotsList(dotslists: NodeListOf<Element>) {
   const nodes = Array.from(dotslists);
-  for (let i = 0; i < nodes.length; i++) {
-    if (nodes[i].getAttribute("aria-current")) {
+  for (const [i, node] of nodes.entries()) {
+    if (node.getAttribute("aria-current")) {
       return i;
     }
   }

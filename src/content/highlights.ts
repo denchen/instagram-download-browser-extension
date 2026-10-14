@@ -1,5 +1,5 @@
 import { checkType, downloadResource, openInNewTab } from "./utils/fn";
-import { fromUnixSeconds, DownloadParams, getMediaName } from "./utils/filename";
+import { fromUnixSeconds, type DownloadParams, getMediaName } from "./utils/filename";
 import type { Highlight } from "../types/highlights";
 import type { ReelsMedia } from "../types/global";
 import { MediaType } from "../constants";
@@ -51,7 +51,7 @@ export async function highlightsOnClicked(
             ?.split("/")
             .filter((_) => _);
           // A single segment is a profile link (`/username/`).
-          if (hrefArr?.length === 1) {
+          if (hrefArr?.length === 1 && hrefArr[0]) {
             posterName = hrefArr[0];
             break;
           }
@@ -76,6 +76,10 @@ export async function highlightsOnClicked(
 
   const handleMedias = (data: Highlight.Node) => {
     const media = data.items[mediaIndex];
+    if (!media) {
+      console.warn(`no highlight item at index ${mediaIndex}; refusing to guess`);
+      return;
+    }
     const url = getImgOrVideoUrl(media);
     // No index: each highlight item carries its own taken_at, so their
     // timestamps already differ.
@@ -127,9 +131,9 @@ export async function highlightsOnClicked(
       const innerHTML = script.innerHTML;
       const data = JSON.parse(innerHTML);
       if (innerHTML.includes("xdt_api__v1__feed__reels_media__connection")) {
-        const res = findHighlight(data);
-        if (res) {
-          handleMedias(res.edges[0].node);
+        const edge = findHighlight(data)?.edges[0];
+        if (edge) {
+          handleMedias(edge.node);
           return;
         }
       }

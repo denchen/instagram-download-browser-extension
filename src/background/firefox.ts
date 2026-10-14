@@ -7,7 +7,11 @@ import {
 import type { ReelsMedia } from "../types/global";
 import { findValueByKey, limitMapSize, saveGraphqlQuery, saveStories } from "./fn";
 
-browser.runtime.onInstalled.addListener(async () => {
+browser.runtime.onInstalled.addListener(() => {
+  void applyDefaultSettings();
+});
+
+async function applyDefaultSettings() {
   // Every setting is a boolean that defaults on.
   const result = await browser.storage.sync.get(CONFIG_LIST);
 
@@ -34,7 +38,7 @@ browser.runtime.onInstalled.addListener(async () => {
   ) {
     await browser.runtime.openOptionsPage();
   }
-});
+}
 
 browser.runtime.onStartup.addListener(() => {
   void browser.storage.local.set({ stories_user_ids: [], id_to_username_map: [] });
@@ -147,7 +151,7 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
   // oxlint-disable-next-line unicorn/prefer-add-event-listener
   filter.onerror = cleanUp;
 
-  filter.onstop = async () => {
+  const onStop = async () => {
     let str = "";
     if (data.length === 1) {
       str = decoder.decode(data[0]);
@@ -168,7 +172,7 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
       void Promise.all([
         listenInstagram(details, jsonData),
         listenThreads(details, jsonData),
-      ]).catch((e) =>
+      ]).catch((e: unknown) =>
         console.warn(
           `Failed to process an intercepted ${details.url} response; its data was not cached.`,
           e,
@@ -176,12 +180,15 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
       );
     } catch {
       try {
+        // Instagram prefixes JSON responses with `for (;;);` to defeat JSON
+        // hijacking; everything after it is the body.
+        const body = str.split(/\s*for\s+\(;;\);\s*/)[1];
         // record opened stories by user_id and username
         // routePath	"/stories/{username}/{?initial_media_id}/"
-        if (details.url === "https://www.instagram.com/ajax/bulk-route-definitions/") {
+        if (details.url === "https://www.instagram.com/ajax/bulk-route-definitions/" && body) {
           const {
             payload: { payloads },
-          } = JSON.parse(str.split(/\s*for\s+\(;;\);\s*/)[1]);
+          } = JSON.parse(body);
           const { stories_user_ids, id_to_username_map } = await browser.storage.local.get([
             "stories_user_ids",
             "id_to_username_map",
@@ -190,7 +197,7 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
           const idToName = new Map(id_to_username_map);
           for (const [key, value] of Object.entries(payloads)) {
             if (key.startsWith("/stories/")) {
-              // @ts-ignore
+              // @ts-expect-error value is unknown
               const { rootView } = value.result.exports;
               nameToId.set(key.split("/")[2], rootView.props.user_id);
               idToName.set(rootView.props.user_id, key.split("/")[2]);
@@ -212,7 +219,7 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
               .split(/\s*for\s+\(;;\);\s*/)
               .filter((_) => _)
               .map((i) => listenThreads(details, JSON.parse(i))),
-          ).catch((e) => console.warn(`Failed to cache threads from ${details.url}.`, e));
+          ).catch((e: unknown) => console.warn(`Failed to cache threads from ${details.url}.`, e));
         }
       } catch {}
     } finally {
@@ -224,6 +231,9 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
       } catch {}
     }
   };
+  // StreamFilter's typings declare onstop as returning void, so the promise is
+  // handed off here rather than returned into a handler that would drop it.
+  filter.onstop = () => void onStop();
 }
 
 browser.webRequest.onBeforeRequest.addListener(
@@ -270,11 +280,7 @@ browser.webRequest.onBeforeRequest.addListener(
 
 /** Same as reportDownloadFailures in ./chrome.ts; `onDone` frees a blob URL. */
 function reportDownloadFailures(id: number, filename: string, onDone?: () => void) {
-  const onChanged = (delta: {
-    id: number;
-    error?: { current?: string };
-    state?: { current?: string };
-  }) => {
+  const onChanged = (delta: browser.downloads._OnChangedDownloadDelta) => {
     if (delta.id !== id) return;
     if (delta.error?.current) {
       console.error(`Download of ${filename} failed: ${delta.error.current}`);

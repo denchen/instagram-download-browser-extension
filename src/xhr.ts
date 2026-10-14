@@ -21,24 +21,8 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
     switch (url) {
       case "/ajax/bulk-route-definitions/":
       case "https://www.instagram.com/ajax/bulk-route-definitions/":
-        this.addEventListener("load", async function () {
-          try {
-            const {
-              payload: { payloads },
-            } = JSON.parse(this.responseText.split(/\s*for\s+\(;;\);\s*/)[1]);
-            for (const [key, value] of Object.entries(payloads)) {
-              if (key.startsWith("/stories/")) {
-                await chrome.runtime.sendMessage(EXTENSION_ID, {
-                  type: "stories",
-                  data: {
-                    username: key.split("/")[2],
-                    // @ts-expect-error value is unknown
-                    user_id: value.result.exports.rootView.props.user_id,
-                  },
-                });
-              }
-            }
-          } catch {}
+        this.addEventListener("load", function () {
+          void forwardStoryUserIds(this.responseText);
         });
         break;
       case "/ajax/route-definition/":
@@ -84,6 +68,32 @@ window.XMLHttpRequest.prototype.open = function (method, url) {
   // oxlint-disable-next-line prefer-rest-params
   return oldXHROpen.apply(this, [].slice.call(arguments) as any);
 };
+
+// Maps each opened story's username to its user_id for the background to
+// remember. Route paths look like `/stories/{username}/{?initial_media_id}/`.
+async function forwardStoryUserIds(responseText: string) {
+  try {
+    // Instagram prefixes JSON responses with `for (;;);` to defeat JSON
+    // hijacking; everything after it is the body.
+    const body = responseText.split(/\s*for\s+\(;;\);\s*/)[1];
+    if (!body) return;
+    const {
+      payload: { payloads },
+    } = JSON.parse(body);
+    for (const [key, value] of Object.entries(payloads)) {
+      if (key.startsWith("/stories/")) {
+        await chrome.runtime.sendMessage(EXTENSION_ID, {
+          type: "stories",
+          data: {
+            username: key.split("/")[2],
+            // @ts-expect-error value is unknown
+            user_id: value.result.exports.rootView.props.user_id,
+          },
+        });
+      }
+    }
+  } catch {}
+}
 
 // Sends the Threads posts in a GraphQL response to the background, which
 // caches them by post code for the download button to look up.

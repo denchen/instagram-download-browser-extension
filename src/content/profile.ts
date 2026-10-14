@@ -36,10 +36,10 @@ export class ProfilePageHandler implements PageHandler {
   // process() runs every two seconds; one warning per page load is enough.
   private warnedMissingRow = false;
 
-  match(url: URL, pathnameList: string[]) {
+  match(_url: URL, pathnameList: string[]) {
     return (
       pathnameList.length === 1 ||
-      (pathnameList.length === 2 && ["tagged", "reels"].includes(pathnameList[1]))
+      (pathnameList.length === 2 && ["tagged", "reels"].includes(pathnameList[1] ?? ""))
     );
   }
 

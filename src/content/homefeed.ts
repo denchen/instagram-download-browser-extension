@@ -16,22 +16,22 @@ export class FeedPageHandler implements PageHandler {
     this.handleVideo();
 
     const articleList = document.querySelectorAll("article");
-    for (let i = 0; i < articleList.length; i++) {
-      const tagNode = articleList[i].querySelector(tagIconSelector);
+    for (const article of articleList) {
+      const tagNode = article.querySelector(tagIconSelector);
       if (tagNode) {
-        articleList[i].querySelectorAll<HTMLImageElement>("img").forEach((img) => {
+        article.querySelectorAll<HTMLImageElement>("img").forEach((img) => {
           const emptyNode = img.parentElement?.nextElementSibling;
           if (emptyNode instanceof HTMLDivElement && emptyNode.childNodes.length === 0) {
             emptyNode.style.pointerEvents = "none";
           }
         });
       } else {
-        articleList[i].querySelectorAll<HTMLImageElement>(":scope img").forEach((img) => {
+        article.querySelectorAll<HTMLImageElement>(":scope img").forEach((img) => {
           img.style.zIndex = "999";
         });
       }
-      const likeBtn = articleList[i].querySelector(likeIconSelector);
-      if (likeBtn && articleList[i].getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
+      const likeBtn = article.querySelector(likeIconSelector);
+      if (likeBtn && article.getElementsByClassName(CLASS_CUSTOM_BUTTON).length === 0) {
         addCustomBtn(
           likeBtn.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode
             ?.parentNode,
@@ -50,12 +50,12 @@ export class FeedPageHandler implements PageHandler {
     if (!setting_enable_video_controls) return;
 
     const videos = document.querySelectorAll("video");
-    for (let i = 0; i < videos.length; i++) {
-      const videoPlayerMaskDiv = videos[i]
+    for (const video of videos) {
+      const videoPlayerMaskDiv = video
         .closest('[data-visualcompletion="ignore-late-mutation"]')
         ?.querySelector('div[role="group"]');
       if (videoPlayerMaskDiv instanceof HTMLDivElement) {
-        handleVideoMaskClip(videoPlayerMaskDiv, videos[i]);
+        handleVideoMaskClip(videoPlayerMaskDiv, video);
       }
     }
   }

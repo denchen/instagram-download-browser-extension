@@ -85,7 +85,10 @@ describe("saveGraphqlQuery", () => {
     store = {};
     // Like the real API, every call yields before touching the data, which is
     // what lets concurrent read-modify-write cycles interleave.
-    const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+    const tick = () =>
+      new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
     vi.stubGlobal("chrome", {
       storage: {
         local: {

@@ -8,7 +8,7 @@ const PERMS_DECLINED_MESSAGE = "Permission request was declined.\nPlease try aga
 const permissionRequestButtons = document.getElementsByClassName("permissions-request");
 
 for (const elem of permissionRequestButtons) {
-  elem.addEventListener("click", permissionsRequest);
+  elem.addEventListener("click", (event) => void permissionsRequest(event));
 }
 
 async function permissionsRequest(event: any) {

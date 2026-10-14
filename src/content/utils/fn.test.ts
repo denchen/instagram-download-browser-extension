@@ -4,10 +4,11 @@ import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from "vite
 import { MediaType } from "../../constants";
 import { TAKEN_AT, carousel, fullUrl, owner, photo, video } from "../../test/fixtures";
 import { fromUnixSeconds } from "./filename";
+import type * as FnModule from "./fn";
 
 // fn.ts caches media ids and API responses in module-level maps, so each test
 // gets a fresh copy of the module.
-let fn: typeof import("./fn");
+let fn: typeof FnModule;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -260,7 +261,7 @@ describe("downloadResource", () => {
       type: MediaType.Story,
       index: 2,
     });
-    expect((sendMessage.mock.calls[0][0] as { data: { filename: string } }).data.filename).toBe(
+    expect((sendMessage.mock.calls[0]![0] as { data: { filename: string } }).data.filename).toBe(
       "@groot/story - 2025.08.12T16.54.23 02.mp4",
     );
   });
@@ -278,7 +279,7 @@ describe("downloadResource", () => {
   it("files a download with no username under @unknown/ and says why", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     await fn.downloadResource({ url: URL_JPG, datetime: fromUnixSeconds(TAKEN_AT) });
-    expect((sendMessage.mock.calls[0][0] as { data: { filename: string } }).data.filename).toBe(
+    expect((sendMessage.mock.calls[0]![0] as { data: { filename: string } }).data.filename).toBe(
       "@unknown/2025.08.12T16.54.23.jpg",
     );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("@unknown/"));
@@ -312,7 +313,7 @@ describe("downloadResource", () => {
       await fn.downloadResource(params);
       await vi.waitFor(() => expect(click).toHaveBeenCalledOnce());
       expect(fetch).toHaveBeenCalledWith(URL_JPG, expect.anything());
-      expect(clicked[0].download).toBe("2025.08.12T16.54.23.jpg");
+      expect(clicked[0]!.download).toBe("2025.08.12T16.54.23.jpg");
     });
 
     it("saves in the page when the background is unreachable", async () => {

@@ -46,9 +46,11 @@ export async function muxDash(video: ArrayBuffer, audio: ArrayBuffer | null): Pr
     target: new BufferTarget(),
   });
 
-  const videoSource = new EncodedVideoPacketSource(videoTrack.codec!);
-  output.addVideoTrack(videoSource, { rotation: videoTrack.rotation });
-  const audioSource = audioTrack ? new EncodedAudioPacketSource(audioTrack.codec!) : null;
+  const videoSource = new EncodedVideoPacketSource((await videoTrack.getCodec())!);
+  output.addVideoTrack(videoSource, { rotation: await videoTrack.getRotation() });
+  const audioSource = audioTrack
+    ? new EncodedAudioPacketSource((await audioTrack.getCodec())!)
+    : null;
   if (audioSource) output.addAudioTrack(audioSource);
 
   await output.start();
