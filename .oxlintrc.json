@@ -106,6 +106,13 @@
     "typescript/no-mixed-enums": "error",
     "typescript/no-redundant-type-constituents": "error",
     "typescript/no-unnecessary-type-assertion": "error",
+    // ignorePrimitives.string: a `||` over a username or a file extension
+    // means "empty counts as missing", which is what sends an unresolved
+    // username to @unknown/; `??` would keep the empty string and file under
+    // `@/`. It also exempts the `any`-typed payload reads, for the same
+    // reason strict-boolean-expressions sets allowAny. Objects and arrays
+    // are still checked.
+    "typescript/prefer-nullish-coalescing": ["error", { "ignorePrimitives": { "string": true } }],
     "typescript/prefer-optional-chain": "error",
     "typescript/prefer-reduce-type-parameter": "error",
     "typescript/prefer-return-this-type": "error",
@@ -114,6 +121,16 @@
     "typescript/restrict-plus-operands": "error",
     "typescript/restrict-template-expressions": "error",
     "typescript/switch-exhaustiveness-check": "error",
+    // allowAny until the Instagram payloads are typed: 78 of the rule's
+    // reports were `any` in a conditional, which a cast would silence
+    // without making any of them safer. allowNullableString because these
+    // are DOM reads, where `getAttribute` returning "" and returning null
+    // both mean the attribute is not usable -- the truthiness the rule
+    // objects to is the intended test, and `!== null` would be wrong.
+    "typescript/strict-boolean-expressions": [
+      "error",
+      { "allowAny": true, "allowNullableString": true }
+    ],
     "typescript/use-unknown-in-catch-callback-variable": "error",
     "no-case-declarations": "error",
     "no-param-reassign": "error",

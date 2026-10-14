@@ -56,9 +56,7 @@ async function postGetUrl(articleNode: HTMLElement) {
       const videoElem = articleNode.querySelector<HTMLVideoElement>("article  div > video");
       const imgElem = articleNode.querySelector<HTMLImageElement>("article  div[role] div > img");
       if (videoElem) {
-        if (videoElem) {
-          url = await getVideoSrc(articleNode, videoElem);
-        }
+        url = await getVideoSrc(articleNode, videoElem);
       } else if (imgElem) {
         url = imgElem.getAttribute("src");
       } else {
@@ -257,8 +255,8 @@ export class PostPageHandler implements PageHandler {
 
     const likeBtn = wrapperNode?.querySelector(likeIconSelector);
     const btnsContainer =
-      document.querySelector('div[role="presentation"] section') ||
-      document.querySelector('main[role="main"] section') ||
+      document.querySelector('div[role="presentation"] section') ??
+      document.querySelector('main[role="main"] section') ??
       likeBtn?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode?.parentNode;
     if (
       btnsContainer instanceof HTMLElement &&
@@ -285,7 +283,7 @@ export class PostPageHandler implements PageHandler {
     const { setting_enable_video_controls } = storageCache.settings;
     if (!setting_enable_video_controls) return;
 
-    const videos = (dialogNode || document).querySelectorAll("video");
+    const videos = (dialogNode ?? document).querySelectorAll("video");
     for (const video of videos) {
       const videoPlayerMaskDiv = video
         .closest('[tabindex="-1"]')

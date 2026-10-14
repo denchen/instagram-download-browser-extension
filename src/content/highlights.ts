@@ -27,7 +27,7 @@ export async function highlightsOnClicked(
   target: HTMLAnchorElement,
   containerNode: Element | null,
 ) {
-  const sectionNode = getParentSectionNode(target) || containerNode;
+  const sectionNode = getParentSectionNode(target) ?? containerNode;
   if (!sectionNode) {
     console.warn("cannot find section node");
     return;

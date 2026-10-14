@@ -92,7 +92,7 @@ export function getUserFolder(username?: string) {
  * multi-image post alike.
  */
 export const getFilenameFromUrl = ({ datetime, index, type }: DownloadParams) => {
-  const prefix = type ? TYPE_FILENAME_PREFIX[type] : "";
+  const prefix = type === undefined ? "" : TYPE_FILENAME_PREFIX[type];
   const suffix = index === undefined ? "" : ` ${index.toString().padStart(2, "0")}`;
   return `${prefix}${formatTimestamp(datetime)}${suffix}`;
 };

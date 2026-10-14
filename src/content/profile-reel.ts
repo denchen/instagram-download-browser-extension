@@ -59,9 +59,7 @@ async function getUrl() {
         containerNode.querySelector("article  div > video");
       const imgElem = containerNode.querySelector("article  div[role] div > img");
       if (videoElem) {
-        if (videoElem) {
-          url = await getVideoSrc(containerNode, videoElem);
-        }
+        url = await getVideoSrc(containerNode, videoElem);
       } else if (imgElem) {
         url = imgElem.getAttribute("src");
       } else {
@@ -80,7 +78,7 @@ async function getUrl() {
       );
     }
     // Guard -1: the DOM fallback below has no slide at a negative index.
-    let mediaIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+    let mediaIndex = dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
     if (mediaIndex < 0) {
       console.warn("Could not read the slide indicators; defaulting to the first slide.");
       mediaIndex = 0;
@@ -125,7 +123,7 @@ export class ReelPageHandler implements PageHandler {
 
   process(iconColor: IconColor) {
     const dialogNode = document.querySelector('div[role="dialog"]');
-    const node = dialogNode || document;
+    const node = dialogNode ?? document;
     const commentBtn = node.querySelector(
       'path[d="M20.656 17.008a9.993 9.993 0 1 0-3.59 3.615L22 22Z"]',
     );
@@ -269,7 +267,7 @@ export class ReelPageHandler implements PageHandler {
     const { setting_enable_video_controls } = storageCache.settings;
     if (!setting_enable_video_controls) return;
 
-    const videos = (dialogNode || document).querySelectorAll("video");
+    const videos = (dialogNode ?? document).querySelectorAll("video");
     for (const video of videos) {
       const videoPlayerMaskDiv = video
         .closest('[tabindex="-1"]')
