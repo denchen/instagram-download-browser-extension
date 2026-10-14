@@ -80,7 +80,7 @@ export class ProfilePageHandler implements PageHandler {
   }
 
   onCustomButtonClick(target: HTMLAnchorElement) {
-    if (getProfileHeaderRow()?.contains(target)) {
+    if (getProfileHeaderRow()?.contains(target) === true) {
       return profileOnClicked(target);
     }
     return postOnClicked(target);

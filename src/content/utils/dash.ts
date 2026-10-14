@@ -52,13 +52,13 @@ export function pickDashStreams(manifest: string, progressiveHeight: number): Da
     candidates.reduce<Rep | undefined>((top, r) => (!top || better(r, top) ? r : top), undefined);
 
   const video = best(
-    reps.filter((r) => r.kind === "video" && r.url && r.height > 0),
+    reps.filter((r) => r.kind === "video" && r.url !== "" && r.height > 0),
     (a, b) => a.height > b.height || (a.height === b.height && a.bandwidth > b.bandwidth),
   );
   if (!video || video.height <= progressiveHeight) return null;
 
   const audio = best(
-    reps.filter((r) => r.kind === "audio" && r.url),
+    reps.filter((r) => r.kind === "audio" && r.url !== ""),
     (a, b) => a.bandwidth > b.bandwidth,
   );
 

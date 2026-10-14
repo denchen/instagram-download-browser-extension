@@ -3,7 +3,9 @@ import { fromUnixSeconds, getMediaName } from "../utils/filename";
 import { getImgOrVideoUrl } from "../utils/media";
 import { MediaType } from "../../constants";
 
-function findFeedDataEdges(obj: Record<string, any>): Array<Record<string, any>> | null {
+function findFeedDataEdges(
+  obj: Record<string, any> | null | undefined,
+): Array<Record<string, any>> | null {
   if (obj) {
     if (Array.isArray(obj.edges)) {
       return obj.edges;

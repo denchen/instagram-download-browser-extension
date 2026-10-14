@@ -50,9 +50,7 @@ async function getUrl(containerNode: HTMLElement) {
         containerNode.querySelector("article  div > video");
       const imgElem = containerNode.querySelector("article  div[role] div > img");
       if (videoElem) {
-        if (videoElem) {
-          url = await getVideoSrc(containerNode, videoElem);
-        }
+        url = await getVideoSrc(containerNode, videoElem);
       } else if (imgElem) {
         url = imgElem.getAttribute("src");
       } else {
@@ -74,7 +72,7 @@ async function getUrl(containerNode: HTMLElement) {
       );
     }
 
-    const dotsIndex = dotsList && dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
+    const dotsIndex = dotsList.length > 0 ? getCurrentStepFromDotsList(dotsList) : -1;
     const idxFromUrl = new URLSearchParams(window.location.search).get("img_index");
 
     if (dotsIndex >= 0) {

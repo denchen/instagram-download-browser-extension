@@ -1,12 +1,12 @@
 import { audioIsMutedSVGPath, audioIsPlayingSVGPath, unmutedSVGPath } from "../../constants";
 
-const volumeChangeGuard = new WeakMap<HTMLVideoElement, boolean>();
+const volumeChangeGuard = new WeakSet<HTMLVideoElement>();
 
 export function handleStoriesVideoVolumeChange(e: Event) {
   const target = e.target;
   if (!(target instanceof HTMLVideoElement)) return;
-  if (volumeChangeGuard.get(target)) return;
-  volumeChangeGuard.set(target, true);
+  if (volumeChangeGuard.has(target)) return;
+  volumeChangeGuard.add(target);
   try {
     const sectionNode = target.closest("section");
     if (!sectionNode) return;
@@ -25,7 +25,7 @@ export function handleStoriesVideoVolumeChange(e: Event) {
     }
   } finally {
     setTimeout(() => {
-      volumeChangeGuard.set(target, false);
+      volumeChangeGuard.delete(target);
     }, 100);
   }
 }
@@ -33,12 +33,12 @@ export function handleStoriesVideoVolumeChange(e: Event) {
 function handleVideVolumeChange(e: Event, groupDiv: HTMLDivElement) {
   const videoTarget = e.target;
   if (!(videoTarget instanceof HTMLVideoElement)) return;
-  if (volumeChangeGuard.get(videoTarget)) return;
-  volumeChangeGuard.set(videoTarget, true);
+  if (volumeChangeGuard.has(videoTarget)) return;
+  volumeChangeGuard.add(videoTarget);
   try {
     const isMutingBtn = groupDiv.querySelector(audioIsMutedSVGPath);
     const isUnmutingBtn =
-      groupDiv.querySelector(audioIsPlayingSVGPath) || groupDiv.querySelector(unmutedSVGPath);
+      groupDiv.querySelector(audioIsPlayingSVGPath) ?? groupDiv.querySelector(unmutedSVGPath);
     const newEvent = new MouseEvent("click", {
       view: window,
       bubbles: true,
@@ -52,7 +52,7 @@ function handleVideVolumeChange(e: Event, groupDiv: HTMLDivElement) {
     }
   } finally {
     setTimeout(() => {
-      volumeChangeGuard.set(videoTarget, false);
+      volumeChangeGuard.delete(videoTarget);
     }, 100);
   }
 }
@@ -67,11 +67,11 @@ export function handleVideoMaskClip(
 ) {
   videoTarget.controls = true;
   if (videoTarget.dataset.customVolumeAttached !== "true") {
-    const handler = customOptions.onVolumeChange
-      ? customOptions.onVolumeChange
-      : (event: Event) => {
-          handleVideVolumeChange(event, videoPlayerMaskDiv);
-        };
+    const handler =
+      customOptions.onVolumeChange ??
+      ((event: Event) => {
+        handleVideVolumeChange(event, videoPlayerMaskDiv);
+      });
     videoTarget.addEventListener("volumechange", handler);
     videoTarget.dataset.customVolumeAttached = "true";
   }

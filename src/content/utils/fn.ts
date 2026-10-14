@@ -300,7 +300,7 @@ export async function downloadResource(params: DownloadParams) {
   }
   const path = `${folder}/${filename}.${getExtensionFromUrl(url)}`;
 
-  if (storageCache.settings.setting_video_highest_quality !== false) {
+  if (storageCache.settings.setting_video_highest_quality) {
     const dash = dashManifestFor(url);
     const streams = dash && pickDashStreams(dash.manifest, dash.height);
     if (streams && (await downloadDash(streams, `${folder}/${filename}.mp4`, filename))) return;
