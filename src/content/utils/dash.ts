@@ -101,6 +101,6 @@ export function rememberDashManifest(url: string, manifest: string, height: numb
   }
 }
 
-export function dashManifestFor(url: string) {
-  return manifests.get(url) ?? null;
+export function dashManifestFor(url: string | undefined) {
+  return (url === undefined ? undefined : manifests.get(url)) ?? null;
 }

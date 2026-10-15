@@ -1,3 +1,4 @@
+import type { MediaReel } from "../types/media";
 import type { Stories } from "../types/stories";
 import type { Highlight } from "../types/highlights";
 import type { Reels } from "../types/reels";
@@ -83,7 +84,13 @@ export async function saveStories(jsonData: Record<string, any>) {
   }
 }
 
-async function saveStoriesToLocal(data: Stories.ReelsMedum[]) {
+/**
+ * Both stories and highlights land here: the home tray links a highlight at
+ * /stories/{username} like any story, so the content script looks both up in
+ * this one map. MediaReel is what the two payloads actually share -- their
+ * generated shapes differ in fields nothing reads.
+ */
+async function saveStoriesToLocal(data: MediaReel[]) {
   const { stories_reels_media } = await chrome.storage.local.get(["stories_reels_media"]);
   const newMap = new Map(stories_reels_media);
   data.forEach((i) => {

@@ -2,8 +2,13 @@ import type { MediaType } from "../../constants";
 import { TYPE_FILENAME_PREFIX } from "../../constants";
 
 export interface DownloadParams {
-  url: string;
-  username?: string | undefined;
+  /**
+   * Undefined when getImgOrVideoUrl found no rendition. downloadResource
+   * names that case rather than failing on it, so callers pass it straight
+   * through instead of each inventing a check.
+   */
+  url: string | undefined;
+  username?: string | null | undefined;
   /**
    * A `Date`, or a string `Date` can parse (in practice a `<time datetime>`
    * attribute). Numbers are deliberately not accepted: the API's `taken_at`
@@ -17,7 +22,8 @@ export interface DownloadParams {
   type?: MediaType | undefined;
 }
 
-export function getMediaName(url: string) {
+export function getMediaName(url: string | undefined) {
+  if (url === undefined) return "";
   try {
     const urlObj = new URL(url);
     const pathnameArr = urlObj.pathname.split("/");
@@ -65,8 +71,8 @@ function formatTimestamp(datetime?: DownloadParams["datetime"]) {
   return date.toISOString().slice(0, 19).replaceAll(/[-:]/g, ".");
 }
 
-export function fromUnixSeconds(seconds: number) {
-  return new Date(seconds * 1000);
+export function fromUnixSeconds(seconds: number | undefined) {
+  return seconds === undefined ? undefined : new Date(seconds * 1000);
 }
 
 /**
@@ -76,7 +82,7 @@ export function fromUnixSeconds(seconds: number) {
  * invariants"). Resolve it from the payload; a new download path that passes
  * the page's username would silently misfile.
  */
-export function getUserFolder(username?: string) {
+export function getUserFolder(username?: string | null) {
   // Instagram usernames are [A-Za-z0-9._] so this is belt-and-braces, but a
   // stray separator would let the name escape the intended directory, and a
   // pure-dot name would be rejected by chrome.downloads outright.

@@ -56,26 +56,26 @@ declare namespace ReelsMedia {
     is_visual_reply_commenter_notice_enabled: boolean;
     commerciality_status: string;
     explore_hide_comments: boolean;
-    shop_routing_user_id: any;
+    shop_routing_user_id: unknown;
     can_see_insights_as_brand: boolean;
     is_organic_product_tagging_eligible: boolean;
-    likers: any[];
+    likers: unknown[];
     media_type: number;
     code: string;
-    caption: any;
-    clips_tab_pinned_user_ids: any[];
+    caption: unknown;
+    clips_tab_pinned_user_ids: unknown[];
     comment_inform_treatment: CommentInformTreatment;
     sharing_friction_info: SharingFrictionInfo;
     has_translation: boolean;
     accessibility_caption?: string;
     original_media_has_visual_reply_media: boolean;
     fb_user_tags: FbUserTags;
-    invited_coauthor_producers: any[];
+    invited_coauthor_producers: unknown[];
     can_viewer_save: boolean;
     is_in_profile_grid: boolean;
     profile_grid_control_enabled: boolean;
     is_comments_gif_composer_enabled: boolean;
-    product_suggestions: any[];
+    product_suggestions: unknown[];
     attribution_content_url?: string;
     image_versions2: ImageVersions2;
     original_width: number;
@@ -83,11 +83,11 @@ declare namespace ReelsMedia {
     enable_media_notes_production: boolean;
     product_type: string;
     is_paid_partnership: boolean;
-    music_metadata: any;
+    music_metadata: unknown;
     organic_tracking_token: string;
     ig_media_sharing_disabled: boolean;
-    boost_unavailable_identifier: any;
-    boost_unavailable_reason: any;
+    boost_unavailable_identifier: unknown;
+    boost_unavailable_reason: unknown;
     open_carousel_submission_state: string;
     is_open_to_public_submission: boolean;
     has_delayed_metadata: boolean;
@@ -124,18 +124,18 @@ declare namespace ReelsMedia {
   export interface CommentInformTreatment {
     should_have_inform_treatment: boolean;
     text: string;
-    url: any;
-    action_type: any;
+    url: unknown;
+    action_type: unknown;
   }
 
   export interface SharingFrictionInfo {
     should_have_sharing_friction: boolean;
-    bloks_app_url: any;
-    sharing_friction_payload: any;
+    bloks_app_url: unknown;
+    sharing_friction_payload: unknown;
   }
 
   export interface FbUserTags {
-    in: any[];
+    in: unknown[];
   }
 
   export interface ImageVersions2 {
@@ -220,10 +220,10 @@ declare namespace ReelsMedia {
     can_reshare: boolean;
     can_react_with_avatar: boolean;
     reel_type: string;
-    ad_expiry_timestamp_in_millis: any;
-    is_cta_sticker_available: any;
-    app_sticker_info: any;
-    should_treat_link_sticker_as_cta: any;
+    ad_expiry_timestamp_in_millis: unknown;
+    is_cta_sticker_available: unknown;
+    app_sticker_info: unknown;
+    should_treat_link_sticker_as_cta: unknown;
     user: User;
     items: Item[];
     prefetch_count: number;

@@ -1,3 +1,9 @@
+/**
+ * A captured sample of one response, recorded in full. Fields the download
+ * paths actually read are typed to agree with `MediaItem` in ./media; the rest
+ * are as the sample had them, so a field that was null there reads `unknown`
+ * until something needs it.
+ */
 export namespace Reels {
   export interface Root {
     data: Data;
@@ -27,13 +33,13 @@ export namespace Reels {
   export interface Media {
     code: string;
     pk: string;
-    actor_fbid: any;
+    actor_fbid: unknown;
     has_liked: boolean;
-    comments_disabled: any;
+    comments_disabled: unknown;
     like_count: number;
     user: User;
     product_type: string;
-    view_count: any;
+    view_count: unknown;
     like_and_view_counts_disabled: boolean;
     owner: Owner;
     id: string;
@@ -43,19 +49,19 @@ export namespace Reels {
     taken_at: number;
     caption: Caption;
     media_type: number;
-    commenting_disabled_for_viewer: any;
-    can_reshare: any;
+    commenting_disabled_for_viewer: unknown;
+    can_reshare: unknown;
     can_viewer_reshare: boolean;
-    audience: any;
+    audience: unknown;
     ig_media_sharing_disabled: boolean;
     inventory_source: string;
     logging_info_token: string;
-    carousel_media: any;
+    carousel_media?: Media[];
     image_versions2: ImageVersions2;
-    media_overlay_info: any;
-    share_urls: any;
-    saved_collection_ids: any;
-    has_viewer_saved: any;
+    media_overlay_info: unknown;
+    share_urls: unknown;
+    saved_collection_ids: unknown;
+    has_viewer_saved: unknown;
     original_height: number;
     original_width: number;
     is_dash_eligible: number;
@@ -66,10 +72,10 @@ export namespace Reels {
     creative_config?: CreativeConfig;
     usertags?: Usertags;
     location?: Location;
-    clips_attribution_info: any;
-    invited_coauthor_producers: any[];
-    carousel_media_count: any;
-    preview: any;
+    clips_attribution_info: unknown;
+    invited_coauthor_producers: unknown[];
+    carousel_media_count: unknown;
+    preview: unknown;
   }
 
   export interface User {
@@ -132,7 +138,7 @@ export namespace Reels {
   }
 
   export interface ConsumptionInfo {
-    should_mute_audio_reason_type: any;
+    should_mute_audio_reason_type: unknown;
     is_trending_in_clips: boolean;
   }
 
@@ -158,7 +164,7 @@ export namespace Reels {
   }
 
   export interface CreativeConfig {
-    effect_configs: any;
+    effect_configs: unknown;
   }
 
   export interface Usertags {
@@ -183,7 +189,7 @@ export namespace Reels {
     end_cursor: string;
     has_next_page: boolean;
     has_previous_page: boolean;
-    start_cursor: any;
+    start_cursor: unknown;
   }
 
   export interface Extensions {

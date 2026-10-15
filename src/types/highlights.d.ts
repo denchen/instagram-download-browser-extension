@@ -1,3 +1,9 @@
+/**
+ * A captured sample of one response, recorded in full. Fields the download
+ * paths actually read are typed to agree with `MediaItem` in ./media; the rest
+ * are as the sample had them, so a field that was null there reads `unknown`
+ * until something needs it.
+ */
 export namespace Highlight {
   export interface Root {
     data: Data;
@@ -26,35 +32,36 @@ export namespace Highlight {
     reel_type: string;
     cover_media: CoverMedia;
     title: string;
-    seen: any;
+    seen: unknown;
     __typename: string;
   }
 
   export interface Item {
     pk: string;
     id: string;
-    viewer_count: any;
+    viewer_count: unknown;
     video_duration?: number;
     media_type: number;
-    audience: any;
+    audience: unknown;
     taken_at: number;
-    story_cta: any;
+    story_cta: unknown;
     user: User;
     has_liked: boolean;
-    viewers: any;
+    viewers: unknown;
     sharing_friction_info: SharingFrictionInfo;
-    can_viewer_reshare: any;
-    expiring_at: any;
+    can_viewer_reshare: unknown;
+    // null on a highlight: an archived story does not expire.
+    expiring_at: number | null;
     ig_media_sharing_disabled: boolean;
     product_type: string;
-    media_overlay_info: any;
+    media_overlay_info: unknown;
     image_versions2: ImageVersions2;
     can_reply: boolean;
     can_reshare: boolean;
     has_audio?: boolean;
-    story_music_stickers: any;
-    carousel_media_count: any;
-    carousel_media: any;
+    story_music_stickers: unknown;
+    carousel_media_count: unknown;
+    carousel_media?: Item[];
     accessibility_caption?: string;
     original_width: number;
     original_height: number;
@@ -63,42 +70,42 @@ export namespace Highlight {
     number_of_qualities?: number;
     video_dash_manifest?: string;
     video_versions?: VideoVersion[];
-    visual_comment_reply_sticker_info: any;
+    visual_comment_reply_sticker_info: unknown;
     story_bloks_stickers?: StoryBloksSticker[];
-    story_link_stickers: any;
+    story_link_stickers: unknown;
     story_hashtags?: StoryHashtag[];
-    story_locations: any;
-    story_feed_media: any;
-    text_post_share_to_ig_story_stickers: any;
-    story_countdowns: any;
-    story_questions: any;
-    story_sliders: any;
-    preview: any;
+    story_locations: unknown;
+    story_feed_media: unknown;
+    text_post_share_to_ig_story_stickers: unknown;
+    story_countdowns: unknown;
+    story_questions: unknown;
+    story_sliders: unknown;
+    preview: unknown;
     is_paid_partnership: boolean;
-    sponsor_tags: any;
-    reshared_story_media_author: any;
-    story_app_attribution: any;
+    sponsor_tags: unknown;
+    reshared_story_media_author: unknown;
+    story_app_attribution: unknown;
     has_translation: boolean;
-    boosted_status: any;
+    boosted_status: unknown;
     can_see_insights_as_brand: boolean;
-    boost_unavailable_identifier: any;
-    boost_unavailable_reason: any;
-    inventory_source: any;
+    boost_unavailable_identifier: unknown;
+    boost_unavailable_reason: unknown;
+    inventory_source: unknown;
     __typename: string;
   }
 
   export interface User {
     pk: string;
-    id: any;
+    id: unknown;
     is_private: boolean;
-    profile_pic_url: any;
-    username: any;
-    interop_messaging_user_fbid: any;
+    profile_pic_url: unknown;
+    username: string | null;
+    interop_messaging_user_fbid: unknown;
   }
 
   export interface SharingFrictionInfo {
     should_have_sharing_friction: boolean;
-    bloks_app_url: any;
+    bloks_app_url: unknown;
   }
 
   export interface ImageVersions2 {
@@ -123,7 +130,7 @@ export namespace Highlight {
     height: number;
     rotation: number;
     bloks_sticker: BloksSticker;
-    id: any;
+    id: unknown;
   }
 
   export interface BloksSticker {
@@ -147,7 +154,7 @@ export namespace Highlight {
     height: number;
     rotation: number;
     hashtag: Hashtag;
-    id: any;
+    id: unknown;
   }
 
   export interface Hashtag {
@@ -157,9 +164,9 @@ export namespace Highlight {
 
   export interface User2 {
     interop_messaging_user_fbid: string;
-    id: any;
+    id: unknown;
     pk: string;
-    friendship_status: any;
+    friendship_status: unknown;
     username: string;
     is_private: boolean;
     profile_pic_url: string;
@@ -168,7 +175,7 @@ export namespace Highlight {
 
   export interface CoverMedia {
     cropped_image_version: CroppedImageVersion;
-    full_image_version: any;
+    full_image_version: unknown;
   }
 
   export interface CroppedImageVersion {

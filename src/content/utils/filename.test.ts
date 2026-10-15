@@ -86,7 +86,13 @@ describe("getFilenameFromUrl", () => {
 
 describe("fromUnixSeconds", () => {
   it("treats its argument as seconds, not milliseconds", () => {
-    expect(fromUnixSeconds(TAKEN_AT).toISOString()).toBe("2025-08-12T16:54:23.000Z");
+    expect(fromUnixSeconds(TAKEN_AT)!.toISOString()).toBe("2025-08-12T16:54:23.000Z");
+  });
+
+  // A payload with no taken_at has no post time to report; the filename then
+  // falls back to the download time rather than to 1970.
+  it("has no date for a payload with no timestamp", () => {
+    expect(fromUnixSeconds(undefined)).toBeUndefined();
   });
 });
 

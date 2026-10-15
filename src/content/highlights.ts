@@ -35,7 +35,7 @@ export async function highlightsOnClicked(
   const pathname = window.location.pathname; // "/stories/highlights/18023929792378379/"
   const pathnameArr = pathname.split("/");
 
-  const final = (url: string, filenameObj?: Omit<DownloadParams, "url" | "type">) => {
+  const final = (url: string | undefined, filenameObj?: Omit<DownloadParams, "url" | "type">) => {
     if (target.className.includes("download-btn")) {
       if (filenameObj) {
         void downloadResource({

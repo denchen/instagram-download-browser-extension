@@ -7,6 +7,7 @@
 // background extracts and stores posts, the content script reads them back and
 // also extracts from the page's embedded data.
 
+import type { MediaAuthor, MediaItem } from "../../types/media";
 import { getImgOrVideoUrl, largestCandidate } from "./media";
 
 /** Each post is stored under its own key, so a save writes only what changed. */
@@ -16,6 +17,12 @@ export const POST_INDEX_KEY = "posts_index";
 const POST_CACHE_LIMIT = 2000;
 
 export type PostIndex = [code: string, expiresAt: number | null][];
+
+/**
+ * A post that can be cached. The shortcode is the storage key, so an item
+ * without one is dropped by postsFromGraphql rather than stored unkeyed.
+ */
+export type CachedPost = MediaItem & { code: string };
 
 // Measured 2026-10-06 on hand-browsed tabs. Both arrive as XHR responses from
 // /graphql/query, which both backgrounds already route to saveGraphqlQuery.
@@ -37,15 +44,27 @@ const GRID_CONNECTION = "xdt_api__v1__feed__user_timeline_graphql_connection";
  * sizes — not enough to name or size a download — so those posts fall back to
  * the media API.
  */
-export function postsFromGraphql(json: any): Record<string, any>[] {
-  const feed = json?.data?.[FEED_CONNECTION]?.edges;
-  const grid = json?.data?.[GRID_CONNECTION]?.edges;
+export function postsFromGraphql(json: unknown): CachedPost[] {
+  const data = prop(json, "data");
+  const feed = prop(prop(data, FEED_CONNECTION), "edges");
+  const grid = prop(prop(data, GRID_CONNECTION), "edges");
   return [
     ...(Array.isArray(feed)
-      ? feed.map((edge: any) => edge?.node?.media ?? edge?.node?.explore_story?.media)
+      ? feed.map(
+          (edge: unknown) =>
+            prop(prop(edge, "node"), "media") ??
+            prop(prop(prop(edge, "node"), "explore_story"), "media"),
+        )
       : []),
-    ...(Array.isArray(grid) ? grid.map((edge: any) => edge?.node) : []),
-  ].filter((media) => typeof media?.code === "string");
+    ...(Array.isArray(grid) ? grid.map((edge: unknown) => prop(edge, "node")) : []),
+  ].filter((media): media is CachedPost => typeof prop(media, "code") === "string");
+}
+
+/** One step into a parsed response, without assuming anything about its shape. */
+function prop(value: unknown, key: string): unknown {
+  return typeof value === "object" && value !== null
+    ? (value as Record<string, unknown>)[key]
+    : undefined;
 }
 
 /**
@@ -53,7 +72,7 @@ export function postsFromGraphql(json: any): Record<string, any>[] {
  * fetched, so the background never sees it. Finds the feed connection however
  * deeply the page's bootstrap JSON nests it.
  */
-export function postsFromEmbedded(json: unknown): Record<string, any>[] {
+export function postsFromEmbedded(json: unknown): CachedPost[] {
   const connection = findKey(json, FEED_CONNECTION);
   return connection ? postsFromGraphql({ data: { [FEED_CONNECTION]: connection } }) : [];
 }
@@ -74,21 +93,22 @@ function findKey(value: unknown, key: string): unknown {
  * itself it keeps just the rendition getImgOrVideoUrl would pick: a raw post
  * carries ~14 renditions per item and up to 20 carousel items.
  *
- * Keys are only set when present, because callers branch on
- * `"carousel_media" in data`, which an explicit undefined would satisfy.
+ * Keys are only set when present, so a slimmed post reads the same as a
+ * fetched one: a caller testing `carousel_media` sees nothing for a single
+ * post rather than an explicit undefined.
  */
-export function slimPost(media: Record<string, any>): Record<string, any> {
-  const post: Record<string, any> = { code: media.code, taken_at: media.taken_at };
+export function slimPost(media: CachedPost): CachedPost {
+  const post: CachedPost = { code: media.code, taken_at: media.taken_at };
   // The API names the author `owner`; both timeline payloads call it `user`.
   const username = media.owner?.username ?? media.user?.username;
   if (username) post.owner = { username };
   if (Array.isArray(media.coauthor_producers)) {
-    post.coauthor_producers = media.coauthor_producers.map((u: any) => ({
+    post.coauthor_producers = media.coauthor_producers.map((u): MediaAuthor => ({
       username: u?.username,
     }));
   }
   if (Array.isArray(media.carousel_media)) {
-    post.carousel_media = media.carousel_media.map((slide: any) => {
+    post.carousel_media = media.carousel_media.map((slide) => {
       const item = slimRenditions(slide);
       if (slide.owner?.username) item.owner = { username: slide.owner.username };
       if (slide.taken_at !== undefined) item.taken_at = slide.taken_at;
@@ -100,8 +120,8 @@ export function slimPost(media: Record<string, any>): Record<string, any> {
   return post;
 }
 
-function slimRenditions(item: Record<string, any>) {
-  const slim: Record<string, any> = {};
+function slimRenditions(item: MediaItem): MediaItem {
+  const slim: MediaItem = {};
   const video = item.video_versions?.[0];
   if (video?.url) {
     slim.video_versions = [{ url: video.url, height: video.height }];
@@ -124,7 +144,7 @@ function slimRenditions(item: Record<string, any>) {
  * null if no URL says. Instagram signs CDN URLs with an `oe` parameter, the
  * expiry as hex Unix seconds — about 105 hours out when measured 2026-10-06.
  */
-export function postExpiry(post: Record<string, any>): number | null {
+export function postExpiry(post: MediaItem): number | null {
   const items = Array.isArray(post.carousel_media) ? post.carousel_media : [post];
   let earliest: number | null = null;
   for (const item of items) {
@@ -159,7 +179,7 @@ export function isFresh(expiresAt: number | null, now = Date.now()) {
  * True means treat the entry as a miss. An item with no readable expiry, or no
  * item at all, is left to the caller as before.
  */
-export function cachedUrlExpired(item: Record<string, any> | undefined, what: string) {
+export function cachedUrlExpired(item: MediaItem | undefined, what: string) {
   if (!item || isFresh(postExpiry(item))) return false;
   console.log(`Cached ${what} has an expired media URL; looking it up again instead.`);
   return true;
