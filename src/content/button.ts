@@ -60,10 +60,16 @@ function createCustomBtn(svg: string, iconColor: IconColor, className: IconClass
 }
 
 export function addCustomBtn(
-  node: any,
+  node: Node | null | undefined,
   iconColor: IconColor,
   position: "before" | "after" = "after",
 ) {
+  // Callers reach the insertion point by walking up from an icon, so a DOM
+  // change upstream lands here as null rather than as a thrown TypeError.
+  if (!node) {
+    console.warn("No container to add the download buttons to; Instagram's DOM has moved.");
+    return;
+  }
   const { setting_show_open_in_new_tab_icon, setting_show_download_all_icon } =
     storageCache.settings;
   const downloadBtn = createCustomBtn(svgDownloadBtn, iconColor, "download-btn");
@@ -140,11 +146,11 @@ export function handleVideoCoverDownloadBtn(node: HTMLElement) {
         .getPropertyValue("background-image")
         .match(/url\((.*)\)/)?.[1];
       if (url) {
-        void downloadResource({
-          url: JSON.parse(url),
-          username,
-          type: MediaType.Cover,
-        });
+        // background-image reads `url("…")`; the quotes are JSON's own.
+        const parsed: unknown = JSON.parse(url);
+        if (typeof parsed === "string") {
+          void downloadResource({ url: parsed, username, type: MediaType.Cover });
+        }
       }
     }
   } else {

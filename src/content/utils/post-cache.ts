@@ -8,6 +8,7 @@
 // also extracts from the page's embedded data.
 
 import type { MediaAuthor, MediaItem } from "../../types/media";
+import { findKey, path, prop } from "./json";
 import { getImgOrVideoUrl, largestCandidate } from "./media";
 
 /** Each post is stored under its own key, so a save writes only what changed. */
@@ -45,26 +46,17 @@ const GRID_CONNECTION = "xdt_api__v1__feed__user_timeline_graphql_connection";
  * the media API.
  */
 export function postsFromGraphql(json: unknown): CachedPost[] {
-  const data = prop(json, "data");
-  const feed = prop(prop(data, FEED_CONNECTION), "edges");
-  const grid = prop(prop(data, GRID_CONNECTION), "edges");
+  const feed = path(json, "data", FEED_CONNECTION, "edges");
+  const grid = path(json, "data", GRID_CONNECTION, "edges");
   return [
     ...(Array.isArray(feed)
       ? feed.map(
           (edge: unknown) =>
-            prop(prop(edge, "node"), "media") ??
-            prop(prop(prop(edge, "node"), "explore_story"), "media"),
+            path(edge, "node", "media") ?? path(edge, "node", "explore_story", "media"),
         )
       : []),
     ...(Array.isArray(grid) ? grid.map((edge: unknown) => prop(edge, "node")) : []),
   ].filter((media): media is CachedPost => typeof prop(media, "code") === "string");
-}
-
-/** One step into a parsed response, without assuming anything about its shape. */
-function prop(value: unknown, key: string): unknown {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)[key]
-    : undefined;
 }
 
 /**
@@ -75,16 +67,6 @@ function prop(value: unknown, key: string): unknown {
 export function postsFromEmbedded(json: unknown): CachedPost[] {
   const connection = findKey(json, FEED_CONNECTION);
   return connection ? postsFromGraphql({ data: { [FEED_CONNECTION]: connection } }) : [];
-}
-
-function findKey(value: unknown, key: string): unknown {
-  if (typeof value !== "object" || value === null) return undefined;
-  if (Object.hasOwn(value, key)) return (value as Record<string, unknown>)[key];
-  for (const child of Object.values(value)) {
-    const found = findKey(child, key);
-    if (found !== undefined) return found;
-  }
-  return undefined;
 }
 
 /**

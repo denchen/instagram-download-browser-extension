@@ -6,8 +6,13 @@ interface StorageSettings {
   setting_enable_threads: boolean;
   setting_enable_video_controls: boolean;
   setting_video_highest_quality: boolean;
+}
 
-  [key: string]: any;
+type SettingKey = keyof StorageSettings;
+
+/** storage.sync carries nothing but these, and nothing else has a reader. */
+function isSettingKey(key: string): key is SettingKey {
+  return Object.hasOwn(SETTINGS_UNTIL_LOADED, key);
 }
 
 /**
@@ -42,7 +47,11 @@ class StorageCache {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === "sync") {
         for (const [key, { newValue }] of Object.entries(changes)) {
-          this.settings[key] = newValue;
+          if (!isSettingKey(key)) continue;
+          // A removed key falls back to its seed rather than to false, which
+          // would turn highest-quality off; see SETTINGS_UNTIL_LOADED.
+          this.settings[key] =
+            newValue === undefined ? SETTINGS_UNTIL_LOADED[key] : newValue === true;
         }
       }
     });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { describeRendition, getImgOrVideoUrl, largestCandidate, storyExpired } from "./media";
+import type { MediaItem } from "../../types/media";
 
 const candidate = (url: string, width?: number, height?: number) => ({ url, width, height });
 
@@ -81,7 +82,8 @@ describe("getImgOrVideoUrl", () => {
 
   // See getImgOrVideoUrl: an undefined item must throw.
   it("throws on an undefined item rather than resolving to undefined", () => {
-    expect(() => getImgOrVideoUrl(undefined as any)).toThrow(TypeError);
+    // The type forbids it; this pins the runtime behaviour a bad index gives.
+    expect(() => getImgOrVideoUrl(undefined as unknown as MediaItem)).toThrow(TypeError);
   });
 });
 

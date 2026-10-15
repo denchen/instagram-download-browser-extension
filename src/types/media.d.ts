@@ -73,6 +73,18 @@ export interface MediaItem {
   carousel_media?: MediaItem[] | undefined;
 }
 
+/**
+ * A Threads post. Threads reuses Instagram's media fields and adds two of its
+ * own, each of which can hold the only downloadable media on a post: a GIF
+ * proxied from Giphy, and a post quoted inline in the text.
+ */
+export interface ThreadsPost extends MediaItem {
+  giphy_media_info?:
+    | { first_party_cdn_proxied_images?: { fixed_height?: { webp?: string } } }
+    | undefined;
+  text_post_app_info?: { linked_inline_media?: MediaItem } | undefined;
+}
+
 /** A tray entry: one author's stories or one highlight, with its items. */
 export interface MediaReel {
   id?: string | undefined;

@@ -1,4 +1,9 @@
-import { MESSAGE_BLOB_DOWNLOAD, MESSAGE_FILE_DOWNLOAD, MESSAGE_OPEN_URL } from "../../constants";
+import {
+  type DownloadReply,
+  MESSAGE_BLOB_DOWNLOAD,
+  MESSAGE_FILE_DOWNLOAD,
+  MESSAGE_OPEN_URL,
+} from "../../constants";
 import { type DashStreams, dashManifestFor, pickDashStreams } from "./dash";
 import {
   type DownloadParams,
@@ -343,11 +348,11 @@ export async function downloadResource(params: DownloadParams) {
   }
 
   try {
-    const response = await chrome.runtime.sendMessage({
+    const response = (await chrome.runtime.sendMessage({
       type: MESSAGE_FILE_DOWNLOAD,
       data: { url, filename: path },
-    });
-    if (response?.ok) return;
+    })) as DownloadReply | undefined;
+    if (response?.ok === true) return;
     console.error(
       `Background download rejected (${response?.error ?? "no response"}); retrying in-page`,
     );
@@ -390,16 +395,16 @@ async function downloadDash(streams: DashStreams, path: string, filename: string
 
   const blobUrl = URL.createObjectURL(blob);
   try {
-    const response = isFirefox()
-      ? await chrome.runtime.sendMessage({
+    const response = (await (isFirefox()
+      ? chrome.runtime.sendMessage({
           type: MESSAGE_BLOB_DOWNLOAD,
           data: { blob, filename: path },
         })
-      : await chrome.runtime.sendMessage({
+      : chrome.runtime.sendMessage({
           type: MESSAGE_FILE_DOWNLOAD,
           data: { url: blobUrl, filename: path },
-        });
-    if (response?.ok) {
+        }))) as DownloadReply | undefined;
+    if (response?.ok === true) {
       // The download holds its own reference once started; this only frees
       // the URL. Delayed so a slow start can't race it.
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);

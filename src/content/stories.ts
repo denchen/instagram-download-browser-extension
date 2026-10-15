@@ -1,9 +1,11 @@
 import { checkType, downloadResource, getUrlFromInfoApi, openInNewTab } from "./utils/fn";
-import { fromUnixSeconds, getMediaName } from "./utils/filename";
+import { type DownloadParams, fromUnixSeconds, getMediaName } from "./utils/filename";
 import type { Stories } from "../types/stories";
+import type { MediaReel } from "../types/media";
 import type { ReelsMedia } from "../types/global";
 import { getParentSectionNode } from "./utils/dom";
 import { getImgOrVideoUrl, storyExpired } from "./utils/media";
+import { findKey, path, prop } from "./utils/json";
 import { CLASS_CUSTOM_BUTTON, MediaType, shareIconSelector } from "../constants";
 import { storageCache } from "./utils/storage";
 import { handleStoriesVideoVolumeChange, handleVideoMaskClip } from "./utils/video";
@@ -11,52 +13,32 @@ import { addCustomBtn } from "./button";
 import type { PageHandler } from "./handlers";
 import { highlightsOnClicked } from "./highlights";
 
-async function storyGetUrl(target: HTMLElement, sectionNode: any) {
+async function storyGetUrl(target: HTMLElement, sectionNode: Element) {
   const res = await getUrlFromInfoApi(target);
   let url = res?.url;
   if (!url) {
-    if (sectionNode.querySelector("video > source")) {
-      url = sectionNode.querySelector("video > source").getAttribute("src");
-    } else if (sectionNode.querySelector('img[decoding="sync"]')) {
-      const img = sectionNode.querySelector('img[decoding="sync"]');
-      url = img.srcset.split(/ \d+w/g)[0].trim();
-      if (url && url.length > 0) {
-        return url;
-      }
-      url = sectionNode.querySelector('img[decoding="sync"]').getAttribute("src");
-    } else if (sectionNode.querySelector("video")) {
-      url = sectionNode.querySelector("video").getAttribute("src");
+    const source = sectionNode.querySelector("video > source");
+    const img = sectionNode.querySelector<HTMLImageElement>('img[decoding="sync"]');
+    const video = sectionNode.querySelector("video");
+    if (source) {
+      url = source.getAttribute("src") ?? undefined;
+    } else if (img) {
+      // srcset is widest-last; the entry before the first width descriptor
+      // is the plain URL.
+      const fromSrcset = img.srcset.split(/ \d+w/g)[0]?.trim();
+      if (fromSrcset) return fromSrcset;
+      url = img.getAttribute("src") ?? undefined;
+    } else if (video) {
+      url = video.getAttribute("src") ?? undefined;
     }
   }
   return url;
 }
 
-function findRootView(obj: Record<string, any>): Record<string, any> | undefined {
-  for (const key in obj) {
-    if (key === "rootView") {
-      return obj[key];
-    } else if (typeof obj[key] === "object" && obj[key] !== null) {
-      const result = findRootView(obj[key]);
-      if (result) {
-        return result;
-      }
-    }
-  }
-  return undefined;
-}
-
-function findStories(obj: Record<string, any>): Stories.XdtApiV1FeedReelsMedia | undefined {
-  for (const key in obj) {
-    if (key === "xdt_api__v1__feed__reels_media") {
-      return obj[key];
-    } else if (typeof obj[key] === "object" && obj[key] !== null) {
-      const result = findStories(obj[key]);
-      if (result) {
-        return result;
-      }
-    }
-  }
-  return undefined;
+function findStories(json: unknown) {
+  return findKey(json, "xdt_api__v1__feed__reels_media") as
+    | Stories.XdtApiV1FeedReelsMedia
+    | undefined;
 }
 
 export class StoriesPageHandler implements PageHandler {
@@ -107,14 +89,17 @@ export class StoriesPageHandler implements PageHandler {
     const pathnameArr = pathname.split("/").filter((e) => e);
     const posterName = pathnameArr[1];
 
-    const handleMedia = (item: Stories.ReelsMedum, mediaIndex: number) => {
-      const media = item.items[mediaIndex];
+    // MediaReel, not Stories.ReelsMedum: the home tray's reels_media and the
+    // stories map reach this with different generated shapes, and what they
+    // share is the contract.
+    const handleMedia = (item: MediaReel, mediaIndex: number) => {
+      const media = item.items?.[mediaIndex];
       if (!media) return false;
       if (storyExpired(media)) {
         return false;
       }
       const url = getImgOrVideoUrl(media);
-      const final = (obj: any) => {
+      const final = (obj: Omit<DownloadParams, "type">) => {
         if (target.className.includes("download-btn")) {
           void downloadResource({ ...obj, type: MediaType.Story });
         } else {
@@ -125,22 +110,26 @@ export class StoriesPageHandler implements PageHandler {
       // already differ between items in the tray.
       final({
         url: url,
-        username: item.user.username,
+        username: item.user?.username,
         datetime: fromUnixSeconds(media.taken_at),
         id: item.id,
       });
       return true;
     };
 
-    const { stories_reels_media, stories_user_ids, reels_media } = await chrome.storage.local.get([
+    // chrome.storage types every value as `any`; these are what the
+    // background writes under each key.
+    const { stories_reels_media, stories_user_ids, reels_media } = (await chrome.storage.local.get([
       "stories_reels_media",
       "stories_user_ids",
       "reels_media",
-    ]);
+    ])) as {
+      stories_reels_media?: [string, Stories.ReelsMedum][];
+      stories_user_ids?: [string, string][];
+      reels_media?: ReelsMedia.ReelsMedum[];
+    };
 
-    const stories_reels_media_data: Map<string, Stories.ReelsMedum> = new Map(
-      stories_reels_media || [],
-    );
+    const stories_reels_media_data = new Map<string, Stories.ReelsMedum>(stories_reels_media ?? []);
 
     // no media_id in url
     if (pathnameArr.length === 2) {
@@ -160,7 +149,7 @@ export class StoriesPageHandler implements PageHandler {
         for (const script of window.document.scripts) {
           try {
             const innerHTML = script.innerHTML;
-            const data = JSON.parse(innerHTML);
+            const data: unknown = JSON.parse(innerHTML);
             if (innerHTML.includes("xdt_api__v1__feed__reels_media")) {
               const reel = findStories(data)?.reels_media[0];
               if (reel) {
@@ -172,7 +161,8 @@ export class StoriesPageHandler implements PageHandler {
         }
       }
 
-      const user_id = new Map(stories_user_ids || []).get(posterName);
+      const user_id =
+        posterName === undefined ? undefined : new Map(stories_user_ids ?? []).get(posterName);
       if (typeof user_id === "string") {
         const item = stories_reels_media_data.get(user_id);
         if (item && steps.length === item.items.length) {
@@ -184,11 +174,13 @@ export class StoriesPageHandler implements PageHandler {
       for (const script of window.document.scripts) {
         try {
           const innerHTML = script.innerHTML;
-          const data = JSON.parse(innerHTML);
+          const data: unknown = JSON.parse(innerHTML);
           if (innerHTML.includes("rootView")) {
-            const rootViewData = findRootView(data);
-            const id = rootViewData?.props.media_owner_id || rootViewData?.props.id;
-            const item = stories_reels_media_data.get(id);
+            // The tray's own id for the author, under whichever of the two
+            // names this page's bootstrap data uses.
+            const props = path(data, "rootView", "props");
+            const id = (prop(props, "media_owner_id") ?? prop(props, "id")) as string | undefined;
+            const item = id === undefined ? undefined : stories_reels_media_data.get(id);
             if (item) {
               handleMedia(item, mediaIndex);
               return;
@@ -211,7 +203,7 @@ export class StoriesPageHandler implements PageHandler {
       for (const script of window.document.scripts) {
         try {
           const innerHTML = script.innerHTML;
-          const data = JSON.parse(innerHTML);
+          const data: unknown = JSON.parse(innerHTML);
           if (innerHTML.includes("xdt_api__v1__feed__reels_media")) {
             const reel = findStories(data)?.reels_media[0];
             if (reel) {
@@ -225,9 +217,7 @@ export class StoriesPageHandler implements PageHandler {
         } catch {}
       }
 
-      const item = (reels_media || []).find((i: ReelsMedia.ReelsMedum) =>
-        i.media_ids?.includes(mediaId),
-      );
+      const item = (reels_media ?? []).find((i) => i.media_ids?.includes(mediaId));
       if (item) {
         handleMedia(item, item.media_ids.indexOf(mediaId));
         return;

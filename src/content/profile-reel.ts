@@ -3,7 +3,9 @@ import { cachedUrlExpired } from "./utils/post-cache";
 import { fromUnixSeconds, type DownloadParams, getMediaName } from "./utils/filename";
 import { getCurrentStepFromDotsList } from "./utils/dom";
 import { getImgOrVideoUrl } from "./utils/media";
+import { asArray, findKey, prop } from "./utils/json";
 import type { ProfileReel } from "../types/profileReel";
+import type { MediaItem } from "../types/media";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from "../types/global";
 import { handleVideoMaskClip } from "./utils/video";
@@ -14,7 +16,7 @@ import { storageCache } from "./utils/storage";
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
   const poster = videoElem.getAttribute("poster");
   const timeNodes = [...containerNode.querySelectorAll("time")];
-  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
+  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as HTMLAnchorElement).href;
   const posterPattern = /\/([^/?]*)\?/;
   const posterMatch = poster?.match(posterPattern);
   const postFileName = posterMatch?.[1];
@@ -22,8 +24,10 @@ async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoEle
   const content = await resp.text();
   const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, "s");
   const match = content.match(pattern);
-  let videoUrl = JSON.parse(match?.[1] ?? "");
-  videoUrl = videoUrl.replaceAll(
+  // The captured group is a JSON string literal, quotes and all.
+  const parsed: unknown = JSON.parse(match?.[1] ?? '""');
+  if (typeof parsed !== "string" || parsed === "") return null;
+  const videoUrl = parsed.replaceAll(
     /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g,
     "https://scontent.cdninstagram.com",
   );
@@ -149,14 +153,16 @@ export class ReelPageHandler implements PageHandler {
     };
 
     const getDataFromLocal = async () => {
-      const { profile_reels_edges_data, id_to_username_map } = await chrome.storage.local.get([
+      const { profile_reels_edges_data, id_to_username_map } = (await chrome.storage.local.get([
         "profile_reels_edges_data",
         "id_to_username_map",
-      ]);
+      ])) as {
+        profile_reels_edges_data?: [string, ProfileReel.Media][];
+        id_to_username_map?: [string, string][];
+      };
 
-      const media = new Map(profile_reels_edges_data || []).get(code) as
-        | ProfileReel.Media
-        | undefined;
+      const media =
+        code === undefined ? undefined : new Map(profile_reels_edges_data ?? []).get(code);
       if (media && !cachedUrlExpired(media, "profile reel")) {
         const url = getImgOrVideoUrl(media);
         const times = [
@@ -166,7 +172,7 @@ export class ReelPageHandler implements PageHandler {
         final({
           url: url,
           username:
-            (new Map(id_to_username_map || []).get(media.user.id) as string) ||
+            new Map(id_to_username_map ?? []).get(media.user.id) ||
             document.querySelector("a")?.getAttribute("href")?.replaceAll("/", ""),
           datetime: time,
           id: getMediaName(url),
@@ -177,38 +183,24 @@ export class ReelPageHandler implements PageHandler {
     };
 
     function getDataFromScripts() {
-      function findReel(obj: Record<string, any>): any {
-        for (const key in obj) {
-          if (key === "xdt_api__v1__media__shortcode__web_info") {
-            return obj[key];
-          } else if (typeof obj[key] === "object" && obj[key] !== null) {
-            const result = findReel(obj[key]);
-            if (result) {
-              return result;
-            }
-          }
-        }
-        return undefined;
-      }
-
       for (const script of window.document.scripts) {
         try {
           const innerHTML = script.innerHTML;
-          const data = JSON.parse(innerHTML);
+          const data: unknown = JSON.parse(innerHTML);
           if (innerHTML.includes("xdt_api__v1__media__shortcode__web_info")) {
-            const res = findReel(data);
-            if (res) {
-              for (const media of res.items) {
-                if (media.code === code) {
-                  const url = getImgOrVideoUrl(media);
-                  final({
-                    url: url,
-                    username: media.user.username,
-                    datetime: fromUnixSeconds(media.taken_at),
-                    id: getMediaName(url),
-                  });
-                  return;
-                }
+            const items = asArray(
+              prop(findKey(data, "xdt_api__v1__media__shortcode__web_info"), "items"),
+            ) as MediaItem[];
+            for (const media of items) {
+              if (media.code === code) {
+                const url = getImgOrVideoUrl(media);
+                final({
+                  url: url,
+                  username: media.user?.username,
+                  datetime: fromUnixSeconds(media.taken_at),
+                  id: getMediaName(url),
+                });
+                return;
               }
             }
           }

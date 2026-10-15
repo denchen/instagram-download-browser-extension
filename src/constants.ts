@@ -36,6 +36,12 @@ export const TYPE_FILENAME_PREFIX: Record<MediaType, string> = {
   [MediaType.Cover]: "cover - ",
 };
 
+/** What both backgrounds reply with to a download message. */
+export interface DownloadReply {
+  ok: boolean;
+  error?: string;
+}
+
 export const EXTENSION_ID = "oejjpeobjicdpgaijialfpfcbdnanajk";
 
 export const CLASS_CUSTOM_BUTTON = "custom-btn";
