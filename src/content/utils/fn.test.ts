@@ -268,7 +268,7 @@ describe("downloadResource", () => {
 
   it("refuses a payload with no media URL instead of throwing on it", async () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    await fn.downloadResource({ url: undefined as any, username: "groot" });
+    await fn.downloadResource({ url: undefined, username: "groot" });
     expect(sendMessage).not.toHaveBeenCalled();
     expect(error).toHaveBeenCalledWith(
       expect.stringContaining("No media URL to download"),

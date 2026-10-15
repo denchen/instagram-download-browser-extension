@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { describeRendition, getImgOrVideoUrl, largestCandidate } from "./media";
+import { describeRendition, getImgOrVideoUrl, largestCandidate, storyExpired } from "./media";
 
 const candidate = (url: string, width?: number, height?: number) => ({ url, width, height });
 
@@ -96,5 +96,28 @@ describe("describeRendition", () => {
 
   it("says nothing when the URL declares no size", () => {
     expect(describeRendition("https://cdn.example/a.jpg?stp=dst-jpg_e35")).toBe("");
+  });
+});
+
+describe("storyExpired", () => {
+  const NOW = Date.UTC(2026, 9, 14);
+  const hours = (n: number) => NOW / 1000 + n * 3600;
+
+  it("says a story past its window is gone", () => {
+    expect(storyExpired({ expiring_at: hours(-1) }, NOW)).toBe(true);
+  });
+
+  it("says a story still inside its window is available", () => {
+    expect(storyExpired({ expiring_at: hours(1) }, NOW)).toBe(false);
+  });
+
+  it("treats a highlight's null expiry as never expiring, not as 1970", () => {
+    // The tray stores highlights in the stories map, so they reach this check.
+    // Reading null as 0 would refuse every highlight download.
+    expect(storyExpired({ expiring_at: null }, NOW)).toBe(false);
+  });
+
+  it("treats a missing expiry as never expiring", () => {
+    expect(storyExpired({}, NOW)).toBe(false);
   });
 });

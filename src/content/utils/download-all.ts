@@ -22,7 +22,8 @@ export async function handleDownloadAll(articleNode: HTMLElement) {
 
   // The button shows on every post, so a single-media post downloads its one
   // item, same as the plain download button.
-  if (!("carousel_media" in data)) {
+  const slides = data.carousel_media;
+  if (!slides) {
     await downloadResource({
       url: getImgOrVideoUrl(data),
       username: data.owner?.username,
@@ -34,8 +35,7 @@ export async function handleDownloadAll(articleNode: HTMLElement) {
 
   // `index` keeps slides distinct, since they normally share the post's
   // timestamp.
-  for (let i = 0; i < data.carousel_media.length; i++) {
-    const resource = data.carousel_media[i];
+  for (const [i, resource] of slides.entries()) {
     await downloadResource({
       url: getImgOrVideoUrl(resource),
       username: resource.owner?.username || data.owner?.username,

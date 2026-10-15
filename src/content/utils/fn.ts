@@ -7,10 +7,23 @@ import {
   getUserFolder,
 } from "./filename";
 import { describeRendition, getImgOrVideoUrl } from "./media";
-import { POST_KEY_PREFIX, isFresh, postExpiry, postsFromEmbedded, slimPost } from "./post-cache";
+import {
+  type CachedPost,
+  POST_KEY_PREFIX,
+  isFresh,
+  postExpiry,
+  postsFromEmbedded,
+  slimPost,
+} from "./post-cache";
+import type { MediaItem } from "../../types/media";
 import { storageCache } from "./storage";
 
-export async function openInNewTab(url: string) {
+export async function openInNewTab(url: string | undefined) {
+  // Same no-media case downloadResource reports; see the note there.
+  if (!url) {
+    console.error("No media URL to open: the payload held no video or image rendition.");
+    return;
+  }
   try {
     await chrome.runtime.sendMessage({ type: MESSAGE_OPEN_URL, data: url });
   } catch {
@@ -31,7 +44,7 @@ function forceDownload(blob: string, filename: string, extension: string) {
   }, 100);
 }
 
-const mediaInfoCache: Map<string, any> = new Map(); // key: media id, value: info json
+const mediaInfoCache = new Map<string, { items?: MediaItem[] }>(); // key: media id
 const mediaIdCache: Map<string, string> = new Map(); // key: post id, value: media id
 
 const findAppId = () => {
@@ -122,10 +135,11 @@ const findMediaId = async (postId: string) => {
  * feed and grid responses or, for the home feed's first screen, from the data
  * embedded in the page. Null means fall back to the media API.
  */
-async function getCachedPost(code: string) {
+async function getCachedPost(code: string): Promise<CachedPost | null> {
   const key = POST_KEY_PREFIX + code;
   try {
-    const { [key]: post } = await chrome.storage.local.get([key]);
+    // Written by slimPost, so it is a CachedPost or it is not there at all.
+    const post = (await chrome.storage.local.get([key]))[key] as CachedPost | undefined;
     if (post && isFresh(postExpiry(post))) {
       console.log(`Post ${code} found in the browsing cache; no API request needed.`);
       return post;
@@ -192,25 +206,46 @@ export const getDataFromAPI = async (articleNode: HTMLElement) => {
         console.log(`Fetch info API failed with status code: ${resp.status}`);
         return null;
       }
-      const respJson = await resp.json();
+      const respJson = (await resp.json()) as { items?: MediaItem[] };
       mediaInfoCache.set(mediaId, respJson);
     }
     const infoJson = mediaInfoCache.get(mediaId);
-    return infoJson.items[0];
-  } catch (e: any) {
-    console.log(`Uncaught in getDataFromAPI(): ${e}\n${e.stack}`);
+    return infoJson?.items?.[0] ?? null;
+  } catch (e) {
+    console.log(`Uncaught in getDataFromAPI():`, e);
     return null;
   }
 };
 
+/**
+ * One item flattened for the download paths, with the fields they read lifted
+ * to the top level.
+ *
+ * `owner` here is a username string, not MediaItem's author object: the same
+ * key means different things either side of this function. `coauthor_producers`
+ * is likewise a list of names rather than of authors.
+ */
+export interface ApiMedia extends Omit<MediaItem, "owner" | "coauthor_producers"> {
+  url: string | undefined;
+  owner: string;
+  coauthor_producers: string[];
+  /** The whole post a carousel slide came from, for its id and timestamp. */
+  origin_data?: MediaItem;
+}
+
+/** The coauthors' names, for the download log; [] when a post has none. */
+function authorNames(data: MediaItem): string[] {
+  return (data.coauthor_producers ?? []).flatMap((i) => (i.username ? [i.username] : []));
+}
+
 export const getUrlFromInfoApi = async (
   articleNode: HTMLElement,
   mediaIdx = 0,
-): Promise<Record<string, any> | null> => {
+): Promise<ApiMedia | null> => {
   const data = await getDataFromAPI(articleNode);
   if (!data) return null;
 
-  if ("carousel_media" in data) {
+  if (data.carousel_media) {
     // Refuse an out-of-range index (a stale ?img_index from a longer carousel)
     // rather than clamp, which would download a slide the user isn't viewing.
     if (mediaIdx >= data.carousel_media.length) {
@@ -223,12 +258,13 @@ export const getUrlFromInfoApi = async (
       return null;
     }
     const item = data.carousel_media[Math.max(mediaIdx, 0)];
+    if (!item) return null;
     return {
       ...item,
       url: getImgOrVideoUrl(item),
       taken_at: data.taken_at,
       owner: item.owner?.username || data.owner?.username || "unknown",
-      coauthor_producers: data.coauthor_producers?.map((i: any) => i.username) || [],
+      coauthor_producers: authorNames(data),
       origin_data: data,
     };
   } else {
@@ -236,7 +272,7 @@ export const getUrlFromInfoApi = async (
       ...data,
       url: getImgOrVideoUrl(data),
       owner: data.owner?.username || "unknown",
-      coauthor_producers: data.coauthor_producers?.map((i: any) => i.username) || [],
+      coauthor_producers: authorNames(data),
     };
   }
 };

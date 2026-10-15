@@ -1,6 +1,7 @@
 // Pure helpers for Instagram media payloads and URLs. Kept free of DOM,
 // fetch and chrome.* so they can be unit-tested without a browser.
 
+import type { MediaItem, Rendition } from "../../types/media";
 import { rememberDashManifest } from "./dash";
 
 /**
@@ -11,7 +12,7 @@ import { rememberDashManifest } from "./dash";
  *
  * Not applied to video_versions; see getImgOrVideoUrl.
  */
-export function largestCandidate(candidates?: Record<string, any>[]) {
+export function largestCandidate(candidates?: Rendition[]) {
   if (!candidates || candidates.length === 0) return undefined;
   return candidates.reduce((best, current) => {
     const bestArea = (best.width ?? 0) * (best.height ?? 0);
@@ -36,16 +37,32 @@ export function largestCandidate(candidates?: Record<string, any>[]) {
  * dimensions, a fixed 720p progressive H.264 file. Anything sharper exists only
  * in `video_dash_manifest`, remembered here for downloadResource.
  */
-export function getImgOrVideoUrl(item: Record<string, any>) {
+export function getImgOrVideoUrl(item: MediaItem) {
   const video = item.video_versions?.[0];
   if (video?.url) {
     // See pickDashStreams.
     if (typeof item.video_dash_manifest === "string") {
       rememberDashManifest(video.url, item.video_dash_manifest, Number(video.height) || 0);
     }
-    return video.url as string;
+    return video.url;
   }
   return largestCandidate(item.image_versions2?.candidates)?.url;
+}
+
+/**
+ * Whether a story has passed its 24-hour window, after which Instagram drops
+ * the media and a download would 404.
+ *
+ * A highlight has `expiring_at: null` -- an archived story does not expire --
+ * and the home tray links highlights at /stories/{username}, so the background
+ * stores them in the same map as stories and they reach this check. Absent and
+ * null therefore both mean "still available". Reading either as 0 dates the
+ * item to 1970 and refuses every highlight.
+ */
+export function storyExpired(item: MediaItem, now = Date.now()) {
+  const expiringAt = item.expiring_at;
+  if (expiringAt === undefined || expiringAt === null) return false;
+  return expiringAt * 1000 < now;
 }
 
 /**

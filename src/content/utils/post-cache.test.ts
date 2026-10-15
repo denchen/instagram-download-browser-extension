@@ -90,7 +90,7 @@ describe("slimPost", () => {
   it("keeps the rendition the download path would pick, and only that", () => {
     const slim = slimPost(photo("p", { code: "P", taken_at: TAKEN_AT, owner: owner("me") }));
     expect(getImgOrVideoUrl(slim)).toBe(fullUrl("p"));
-    expect(slim.image_versions2.candidates).toHaveLength(1);
+    expect(slim.image_versions2!.candidates).toHaveLength(1);
   });
 
   it("keeps the video, not its cover", () => {
@@ -124,10 +124,10 @@ describe("slimPost", () => {
       { code: "C" },
     );
     const slim = slimPost(original);
-    expect(slim.carousel_media.map(getImgOrVideoUrl)).toStrictEqual(
+    expect(slim.carousel_media!.map(getImgOrVideoUrl)).toStrictEqual(
       original.carousel_media.map(getImgOrVideoUrl),
     );
-    expect(slim.carousel_media[2].owner).toStrictEqual(owner("slide_owner"));
+    expect(slim.carousel_media![2]!.owner).toStrictEqual(owner("slide_owner"));
     expect(slim).toMatchObject({ taken_at: TAKEN_AT, owner: owner("post_owner") });
   });
 

@@ -3,7 +3,7 @@ import { fromUnixSeconds, getMediaName } from "./utils/filename";
 import type { Stories } from "../types/stories";
 import type { ReelsMedia } from "../types/global";
 import { getParentSectionNode } from "./utils/dom";
-import { getImgOrVideoUrl } from "./utils/media";
+import { getImgOrVideoUrl, storyExpired } from "./utils/media";
 import { CLASS_CUSTOM_BUTTON, MediaType, shareIconSelector } from "../constants";
 import { storageCache } from "./utils/storage";
 import { handleStoriesVideoVolumeChange, handleVideoMaskClip } from "./utils/video";
@@ -110,7 +110,7 @@ export class StoriesPageHandler implements PageHandler {
     const handleMedia = (item: Stories.ReelsMedum, mediaIndex: number) => {
       const media = item.items[mediaIndex];
       if (!media) return false;
-      if (fromUnixSeconds(media.expiring_at).getTime() < Date.now()) {
+      if (storyExpired(media)) {
         return false;
       }
       const url = getImgOrVideoUrl(media);

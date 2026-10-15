@@ -1,3 +1,9 @@
+/**
+ * A captured sample of one response, recorded in full. Fields the download
+ * paths actually read are typed to agree with `MediaItem` in ./media; the rest
+ * are as the sample had them, so a field that was null there reads `unknown`
+ * until something needs it.
+ */
 export namespace ProfileReel {
   export interface Root {
     data: Data;
@@ -29,21 +35,21 @@ export namespace ProfileReel {
     pk: string;
     id: string;
     code: string;
-    media_overlay_info: any;
+    media_overlay_info: unknown;
     media_type: number;
     user: User;
     video_versions?: VideoVersion[];
-    carousel_media: any;
+    carousel_media?: Media[];
     image_versions2: ImageVersions2;
-    preview: any;
+    preview: unknown;
     product_type: string;
-    play_count: any;
+    play_count: unknown;
     view_count?: number;
     like_and_view_counts_disabled: boolean;
     comment_count: number;
     like_count: number;
-    audience: any;
-    clips_tab_pinned_user_ids: any[];
+    audience: unknown;
+    clips_tab_pinned_user_ids: unknown[];
     original_height: number;
     original_width: number;
   }
@@ -72,7 +78,7 @@ export namespace ProfileReel {
     end_cursor: string;
     has_next_page: boolean;
     has_previous_page: boolean;
-    start_cursor: any;
+    start_cursor: unknown;
   }
 
   export interface XdtViewer {
