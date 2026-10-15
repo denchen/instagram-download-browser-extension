@@ -10,8 +10,12 @@ if (/Mobi|Android|iPhone/i.test(navigator.userAgent)) {
 }
 
 const version = document.getElementById("version");
-const manifestVersion = chrome.runtime?.getManifest().version;
-if (version && manifestVersion) version.textContent = `v${manifestVersion}`;
+// chrome-types declares getManifest() as a bare index signature, so the
+// version arrives untyped.
+const manifestVersion: unknown = chrome.runtime?.getManifest().version;
+if (version && typeof manifestVersion === "string") {
+  version.textContent = `v${manifestVersion}`;
+}
 
 const checkboxes = CONFIG_LIST.map((id) => document.getElementById(id)).filter(
   (el): el is HTMLInputElement => el instanceof HTMLInputElement,

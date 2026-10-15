@@ -173,6 +173,33 @@ in `about:addons`. If the release changes behaviour, verify the behaviour rather
   Grepping either form finds one half and the code reads as dead. Check the kebab-case form before
   concluding anything is unused.
 
+## Payload types
+
+Two kinds of type describe Instagram's responses, and they are not
+interchangeable.
+
+`src/types/media.d.ts` is the **contract**: `MediaItem`, `MediaReel`,
+`ThreadsPost` and friends, covering only the fields the download paths read.
+Everything on them is optional, because every one of these values is a parsed
+response from a private API. This is what new code should take and return, and
+`slimPost` writes exactly this shape, so a cached post and a fetched one go
+through the same code.
+
+The other `src/types/*.d.ts` are **captured samples**: one response each,
+transcribed in full. Useful as a record of what a payload looked like, poor as
+a contract — hundreds of fields nothing reads, and `unknown` wherever the
+sample happened to hold `null`. Where a field in one of them is also in the
+contract, the two agree; do not widen one without the other.
+
+Reach into an unparsed response with the helpers in
+`src/content/utils/json.ts` (`prop`, `path`, `findKey`, `asArray`, `isArray`)
+rather than an `any`, then assert into a generated namespace once the shape is
+probed. That probe-then-assert step is why `typescript/no-unsafe-type-assertion`
+is off.
+
+**`Array.isArray` narrows `unknown` to `any[]`**, which puts back the `any` the
+walk just removed. Use `isArray` from that module instead.
+
 ## Filename invariants
 
 Downloads are `@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext` in UTC.

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { findValueByKey, limitMapSize, saveGraphqlQuery, savePosts } from "./fn";
+import { limitMapSize, saveGraphqlQuery, savePosts } from "./fn";
 import { fullUrl, owner, photo } from "../test/fixtures";
 
 describe("limitMapSize", () => {
@@ -41,40 +41,6 @@ describe("limitMapSize", () => {
     limitMapSize(map);
     expect(map.size).toBe(200);
     expect(map.keys().next().value).toBe(50);
-  });
-});
-
-describe("findValueByKey", () => {
-  it("finds a key at the top level", () => {
-    expect(findValueByKey({ target: 1 }, "target")).toBe(1);
-  });
-
-  it("finds a key nested in objects and arrays", () => {
-    const obj = { data: { results: [{ other: 1 }, { deep: { target: "found" } }] } };
-    expect(findValueByKey(obj, "target")).toBe("found");
-  });
-
-  it("returns the first match in depth-first order", () => {
-    const obj = { first: { target: "outer-first" }, target: "top-level" };
-    expect(findValueByKey(obj, "target")).toBe("outer-first");
-  });
-
-  it("returns falsy values instead of skipping them", () => {
-    expect(findValueByKey({ a: { target: 0 } }, "target")).toBe(0);
-    expect(findValueByKey({ a: { target: null } }, "target")).toBeNull();
-  });
-
-  it("walks past null values without throwing", () => {
-    expect(findValueByKey({ a: null, b: { target: 1 } }, "target")).toBe(1);
-  });
-
-  it("ignores inherited properties", () => {
-    const obj = Object.create({ target: "inherited" });
-    expect(findValueByKey(obj, "target")).toBeUndefined();
-  });
-
-  it("returns undefined when the key is absent", () => {
-    expect(findValueByKey({ a: { b: [1, 2] } }, "target")).toBeUndefined();
   });
 });
 
