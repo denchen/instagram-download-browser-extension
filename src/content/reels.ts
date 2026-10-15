@@ -8,6 +8,7 @@ import {
 import { cachedUrlExpired } from "./utils/post-cache";
 import { fromUnixSeconds, type DownloadParams, getMediaName } from "./utils/filename";
 import { getImgOrVideoUrl } from "./utils/media";
+import { findKey } from "./utils/json";
 import type { Reels } from "../types/reels";
 import { CLASS_CUSTOM_BUTTON, MediaType } from "../constants";
 import type { IconColor } from "../types/global";
@@ -17,18 +18,10 @@ import type { PageHandler } from "./handlers";
 import { likeIconSelector } from "../constants";
 import { storageCache } from "./utils/storage";
 
-function findReels(obj: Record<string, any>): Reels.XdtApiV1ClipsHomeConnectionV2 | undefined {
-  for (const key in obj) {
-    if (key === "xdt_api__v1__clips__home__connection_v2") {
-      return obj[key];
-    } else if (typeof obj[key] === "object" && obj[key] !== null) {
-      const result = findReels(obj[key]);
-      if (result) {
-        return result;
-      }
-    }
-  }
-  return undefined;
+function findReels(json: unknown) {
+  return findKey(json, "xdt_api__v1__clips__home__connection_v2") as
+    | Reels.XdtApiV1ClipsHomeConnectionV2
+    | undefined;
 }
 
 export class ReelsPageHandler implements PageHandler {
@@ -75,8 +68,10 @@ export class ReelsPageHandler implements PageHandler {
     };
 
     const code = window.location.pathname.split("/").at(-2);
-    const { reels_edges_data } = await chrome.storage.local.get(["reels_edges_data"]);
-    const media = new Map(reels_edges_data || []).get(code) as Reels.Media | undefined;
+    const { reels_edges_data } = (await chrome.storage.local.get(["reels_edges_data"])) as {
+      reels_edges_data?: [string, Reels.Media][];
+    };
+    const media = code === undefined ? undefined : new Map(reels_edges_data ?? []).get(code);
     if (media && !cachedUrlExpired(media, "reel")) {
       handleMedia(media);
       return;
@@ -86,7 +81,7 @@ export class ReelsPageHandler implements PageHandler {
     for (const script of [...window.document.scripts, ...scripts]) {
       try {
         const innerHTML = script.innerHTML;
-        const data = JSON.parse(innerHTML);
+        const data: unknown = JSON.parse(innerHTML);
         if (innerHTML.includes("xdt_api__v1__clips__home__connection_v2")) {
           const res = findReels(data);
           if (res) {
@@ -112,9 +107,9 @@ export class ReelsPageHandler implements PageHandler {
         datetime: fromUnixSeconds(res.taken_at),
         id: getMediaName(res.url),
       });
-    } catch (e: any) {
+    } catch (e) {
       alert("Reels Download Failed!");
-      console.log(`Uncaught in ReelsPageHandler.onCustomButtonClick(): ${e}\n${e.stack}`);
+      console.log(`Uncaught in ReelsPageHandler.onCustomButtonClick():`, e);
       return;
     }
   }

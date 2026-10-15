@@ -14,7 +14,9 @@ export function getParentSectionNode(node: HTMLElement | null) {
   return getParentSectionNode(node.parentElement);
 }
 
-export function getCurrentStepFromDotsList(dotslists: NodeListOf<Element>) {
+// ArrayLike, not NodeListOf: one caller reaches the dots through `.children`,
+// which is an HTMLCollection.
+export function getCurrentStepFromDotsList(dotslists: ArrayLike<Element>) {
   const nodes = Array.from(dotslists);
   for (const [i, node] of nodes.entries()) {
     if (node.getAttribute("aria-current")) {

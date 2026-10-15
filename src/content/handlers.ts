@@ -12,7 +12,7 @@ export interface PageHandler {
 
   process(iconColor: IconColor): void;
 
-  onCustomButtonClick(target: HTMLAnchorElement): Promise<any>;
+  onCustomButtonClick(target: HTMLAnchorElement): Promise<unknown>;
 }
 
 export const registeredHandlers: PageHandler[] = [

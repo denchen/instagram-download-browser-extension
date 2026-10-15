@@ -5,22 +5,14 @@ import type { ReelsMedia } from "../types/global";
 import { MediaType } from "../constants";
 import { getParentSectionNode } from "./utils/dom";
 import { getImgOrVideoUrl } from "./utils/media";
+import { findKey } from "./utils/json";
+import type { MediaReel } from "../types/media";
 import { cachedUrlExpired } from "./utils/post-cache";
 
-function findHighlight(
-  obj: Record<string, any>,
-): Highlight.XdtApiV1FeedReelsMediaConnection | undefined {
-  for (const key in obj) {
-    if (key === "xdt_api__v1__feed__reels_media__connection") {
-      return obj[key];
-    } else if (typeof obj[key] === "object" && obj[key] !== null) {
-      const result = findHighlight(obj[key]);
-      if (result) {
-        return result;
-      }
-    }
-  }
-  return undefined;
+function findHighlight(json: unknown) {
+  return findKey(json, "xdt_api__v1__feed__reels_media__connection") as
+    | Highlight.XdtApiV1FeedReelsMediaConnection
+    | undefined;
 }
 
 export async function highlightsOnClicked(
@@ -74,8 +66,10 @@ export async function highlightsOnClicked(
 
   let mediaIndex = 0;
 
-  const handleMedias = (data: Highlight.Node) => {
-    const media = data.items[mediaIndex];
+  // MediaReel, not Highlight.Node: the Android path reaches this with the
+  // home tray's shape instead, and what they share is the contract.
+  const handleMedias = (data: MediaReel) => {
+    const media = data.items?.[mediaIndex];
     if (!media) {
       console.warn(`no highlight item at index ${mediaIndex}; refusing to guess`);
       return;
@@ -84,7 +78,7 @@ export async function highlightsOnClicked(
     // No index: each highlight item carries its own taken_at, so their
     // timestamps already differ.
     final(url, {
-      username: data.user.username,
+      username: data.user?.username,
       datetime: fromUnixSeconds(media.taken_at),
       id: data.id,
     });
@@ -96,16 +90,17 @@ export async function highlightsOnClicked(
     }
   });
 
-  const { reels_media, highlights_data } = await chrome.storage.local.get([
+  const { reels_media, highlights_data } = (await chrome.storage.local.get([
     "reels_media",
     "highlights_data",
-  ]);
+  ])) as {
+    reels_media?: ReelsMedia.ReelsMedum[];
+    highlights_data?: [string, Highlight.Node][];
+  };
 
   //  profile page highlight on Android
   if (checkType() === "android") {
-    const itemOnAndroid = (reels_media || []).find(
-      (i: ReelsMedia.ReelsMedum) => i.id === "highlight:" + pathnameArr[3],
-    );
+    const itemOnAndroid = (reels_media ?? []).find((i) => i.id === "highlight:" + pathnameArr[3]);
     if (itemOnAndroid && !cachedUrlExpired(itemOnAndroid.items[mediaIndex], "highlight")) {
       handleMedias(itemOnAndroid);
       return;
@@ -118,9 +113,7 @@ export async function highlightsOnClicked(
     }
   }
 
-  const localData = new Map(highlights_data || []).get("highlight:" + pathnameArr[3]) as
-    | Highlight.Node
-    | undefined;
+  const localData = new Map(highlights_data ?? []).get("highlight:" + pathnameArr[3]);
   if (localData && !cachedUrlExpired(localData.items[mediaIndex], "highlight")) {
     handleMedias(localData);
     return;
@@ -129,7 +122,7 @@ export async function highlightsOnClicked(
   for (const script of window.document.scripts) {
     try {
       const innerHTML = script.innerHTML;
-      const data = JSON.parse(innerHTML);
+      const data: unknown = JSON.parse(innerHTML);
       if (innerHTML.includes("xdt_api__v1__feed__reels_media__connection")) {
         const edge = findHighlight(data)?.edges[0];
         if (edge) {

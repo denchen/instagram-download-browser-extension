@@ -18,7 +18,7 @@ import { postDetailOnClicked } from "./post-detail";
 async function fetchVideoURL(articleNode: HTMLElement, videoElem: HTMLVideoElement) {
   const poster = videoElem.getAttribute("poster");
   const timeNodes = [...articleNode.querySelectorAll("time")];
-  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
+  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as HTMLAnchorElement).href;
   const posterPattern = /\/([^/?]*)\?/;
   const posterMatch = poster?.match(posterPattern);
   const postFileName = posterMatch?.[1];
@@ -26,8 +26,10 @@ async function fetchVideoURL(articleNode: HTMLElement, videoElem: HTMLVideoEleme
   const content = await resp.text();
   const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, "s");
   const match = content.match(pattern);
-  let videoUrl = JSON.parse(match?.[1] ?? "");
-  videoUrl = videoUrl.replaceAll(
+  // The captured group is a JSON string literal, quotes and all.
+  const parsed: unknown = JSON.parse(match?.[1] ?? '""');
+  if (typeof parsed !== "string" || parsed === "") return null;
+  const videoUrl = parsed.replaceAll(
     /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g,
     "https://scontent.cdninstagram.com",
   );
@@ -73,7 +75,7 @@ async function postGetUrl(articleNode: HTMLElement) {
     //      modal arrows move between posts, so it can name a slide from a
     //      previous, longer post;
     //   3. geometry: the image nearest the container's centre.
-    let dotsList: any;
+    let dotsList: ArrayLike<Element> | undefined;
     if (isPostView) {
       dotsList = articleNode.querySelectorAll(
         `:scope>div>div:nth-child(1)>div>div>div:nth-child(2)>div`,
@@ -209,9 +211,9 @@ export async function postOnClicked(target: HTMLAnchorElement) {
     } else {
       await openInNewTab(url);
     }
-  } catch (e: any) {
+  } catch (e) {
     alert(DOWNLOAD_FAILED_MESSAGE);
-    console.log(`Uncaught in postOnClicked(): ${e}\n${e.stack}`);
+    console.log(`Uncaught in postOnClicked():`, e);
   }
 }
 

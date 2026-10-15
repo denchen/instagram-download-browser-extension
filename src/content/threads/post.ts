@@ -1,42 +1,36 @@
 import { downloadResource, openInNewTab } from "../utils/fn";
-import { fromUnixSeconds, getMediaName } from "../utils/filename";
+import { type DownloadParams, fromUnixSeconds, getMediaName } from "../utils/filename";
 import { getImgOrVideoUrl } from "../utils/media";
+import { asArray, isArray, path, prop } from "../utils/json";
+import type { MediaItem, ThreadsPost } from "../../types/media";
 import { MediaType } from "../../constants";
 
-function findFeedDataEdges(
-  obj: Record<string, any> | null | undefined,
-): Array<Record<string, any>> | null {
-  if (obj) {
-    if (Array.isArray(obj.edges)) {
-      return obj.edges;
-    }
-    if (Array.isArray(obj.relatedPosts?.threads)) {
-      return obj.relatedPosts.threads;
-    }
-  }
+function findFeedDataEdges(obj: unknown): unknown[] | null {
+  if (typeof obj !== "object" || obj === null) return null;
 
-  for (const key in obj) {
-    if (typeof obj[key] === "object") {
-      const result = findFeedDataEdges(obj[key]);
-      if (result) {
-        return result;
-      }
-    } else if (Array.isArray(obj[key])) {
-      for (const item of obj[key]) {
+  const edges = prop(obj, "edges");
+  if (isArray(edges)) return edges;
+  const threads = path(obj, "relatedPosts", "threads");
+  if (isArray(threads)) return threads;
+
+  for (const child of Object.values(obj)) {
+    if (Array.isArray(child)) {
+      for (const item of child) {
         const result = findFeedDataEdges(item);
-        if (result) {
-          return result;
-        }
+        if (result) return result;
       }
+    } else {
+      const result = findFeedDataEdges(child);
+      if (result) return result;
     }
   }
 
   return null;
 }
 
-function handleMedia(post: any, action: "download" | "open") {
+function handleMedia(post: ThreadsPost, action: "download" | "open") {
   const { giphy_media_info, carousel_media, text_post_app_info } = post;
-  const final = (obj: any) => {
+  const final = (obj: Omit<DownloadParams, "type">) => {
     if (action === "download") {
       void downloadResource({ ...obj, type: MediaType.Threads });
     } else {
@@ -44,22 +38,23 @@ function handleMedia(post: any, action: "download" | "open") {
     }
   };
 
-  if (giphy_media_info?.first_party_cdn_proxied_images?.fixed_height?.webp) {
-    const url = giphy_media_info?.first_party_cdn_proxied_images?.fixed_height?.webp;
+  const giphyUrl = giphy_media_info?.first_party_cdn_proxied_images?.fixed_height?.webp;
+  if (giphyUrl) {
+    const url = giphyUrl;
     final({
       url: url,
-      username: post.user.username,
+      username: post.user?.username,
       datetime: fromUnixSeconds(post.taken_at),
       id: getMediaName(url),
     });
   }
   if (Array.isArray(carousel_media) && carousel_media.length > 0) {
-    carousel_media.forEach((item: any) => {
+    carousel_media.forEach((item) => {
       const url = getImgOrVideoUrl(item);
       if (!url) return;
       final({
         url: url,
-        username: post.user.username,
+        username: post.user?.username,
         datetime: fromUnixSeconds(post.taken_at),
         id: getMediaName(url),
       });
@@ -69,7 +64,7 @@ function handleMedia(post: any, action: "download" | "open") {
     if (url) {
       final({
         url: url,
-        username: post.user.username,
+        username: post.user?.username,
         datetime: fromUnixSeconds(post.taken_at),
         id: getMediaName(url),
       });
@@ -80,17 +75,17 @@ function handleMedia(post: any, action: "download" | "open") {
         if (!inlineUrl) return;
         final({
           url: inlineUrl,
-          username: post.user.username,
+          username: post.user?.username,
           datetime: fromUnixSeconds(post.taken_at),
           id: getMediaName(inlineUrl),
         });
       } else if (data && Array.isArray(data.carousel_media)) {
-        data.carousel_media.forEach((item: any) => {
+        data.carousel_media.forEach((item: MediaItem) => {
           const itemUrl = getImgOrVideoUrl(item);
           if (!itemUrl) return;
           final({
             url: itemUrl,
-            username: post.user.username,
+            username: post.user?.username,
             datetime: fromUnixSeconds(post.taken_at),
             id: getMediaName(itemUrl),
           });
@@ -109,35 +104,39 @@ export async function handleThreadsPost(container: HTMLDivElement, action: "down
     return;
   }
   const { threads } = await chrome.storage.local.get(["threads"]);
-  const threadMap = new Map(threads || []);
-  const thread = threadMap.get(postCode) as Record<string, any> | undefined;
+  // What the background stores under "threads": thread items, each wrapping
+  // its post, or bare posts. One assertion here rather than one per read.
+  const threadMap = new Map(asArray(threads) as [string, ThreadsPost & { post?: ThreadsPost }][]);
+  const thread = threadMap.get(postCode);
 
   if (thread) {
-    handleMedia(thread.post || thread, action);
+    handleMedia(thread.post ?? thread, action);
     return;
   } else {
     for (const script of window.document.scripts) {
       try {
         const innerHTML = script.innerHTML;
-        const json = JSON.parse(innerHTML);
+        const json: unknown = JSON.parse(innerHTML);
         if (innerHTML.includes("thread_items")) {
           const arr = findFeedDataEdges(json);
 
-          if (Array.isArray(arr)) {
+          if (arr) {
+            // The same thread_items list reaches us at five different
+            // depths depending on which query produced the page.
             const match = arr
-              .flatMap(
-                (i) =>
-                  i.node?.text_post_app_thread?.thread_items ||
-                  i.node?.thread_items ||
-                  i.node?.thread?.thread_items ||
-                  i.text_post_app_thread?.thread_items ||
-                  i.thread_items,
+              .flatMap((i) =>
+                asArray(
+                  path(i, "node", "text_post_app_thread", "thread_items") ??
+                    path(i, "node", "thread_items") ??
+                    path(i, "node", "thread", "thread_items") ??
+                    path(i, "text_post_app_thread", "thread_items") ??
+                    prop(i, "thread_items"),
+                ),
               )
-              .find((i: Record<string, any> | undefined) => i?.post.code === postCode);
+              .find((item) => path(item, "post", "code") === postCode);
 
             if (match) {
-              const { post } = match;
-              handleMedia(post, action);
+              handleMedia(prop(match, "post") as ThreadsPost, action);
               return;
             }
           }

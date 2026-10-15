@@ -6,7 +6,7 @@ import { DOWNLOAD_FAILED_MESSAGE, MediaType } from "../constants";
 async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoElement) {
   const poster = videoElem.getAttribute("poster");
   const timeNodes = [...containerNode.querySelectorAll("time")];
-  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as any).href;
+  const posterUrl = (timeNodes.at(-1)!.parentNode!.parentNode as HTMLAnchorElement).href;
   const posterPattern = /\/([^/?]*)\?/;
   const posterMatch = poster?.match(posterPattern);
   const postFileName = posterMatch?.[1];
@@ -14,8 +14,10 @@ async function fetchVideoURL(containerNode: HTMLElement, videoElem: HTMLVideoEle
   const content = await resp.text();
   const pattern = new RegExp(`${postFileName}.*?video_versions.*?url":("[^"]*")`, "s");
   const match = content.match(pattern);
-  let videoUrl = JSON.parse(match?.[1] ?? "");
-  videoUrl = videoUrl.replaceAll(
+  // The captured group is a JSON string literal, quotes and all.
+  const parsed: unknown = JSON.parse(match?.[1] ?? '""');
+  if (typeof parsed !== "string" || parsed === "") return null;
+  const videoUrl = parsed.replaceAll(
     /^(?:https?:\/\/)?(?:[^@/\n]+@)?(?:www\.)?([^:/?\n]+)/g,
     "https://scontent.cdninstagram.com",
   );
@@ -161,8 +163,8 @@ export async function postDetailOnClicked(target: HTMLAnchorElement) {
     } else {
       await openInNewTab(url);
     }
-  } catch (e: any) {
+  } catch (e) {
     alert(DOWNLOAD_FAILED_MESSAGE);
-    console.log(`Uncaught in postDetailOnClicked(): ${e}\n${e.stack}`);
+    console.log(`Uncaught in postDetailOnClicked():`, e);
   }
 }
