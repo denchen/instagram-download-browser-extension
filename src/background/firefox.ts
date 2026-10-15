@@ -1,11 +1,13 @@
 import {
   CONFIG_LIST,
+  type ContentMessage,
   MESSAGE_BLOB_DOWNLOAD,
   MESSAGE_FILE_DOWNLOAD,
   MESSAGE_OPEN_URL,
 } from "../constants";
 import type { ReelsMedia } from "../types/global";
-import { findValueByKey, limitMapSize, saveGraphqlQuery, saveStories } from "./fn";
+import { limitMapSize, saveGraphqlQuery, saveStories } from "./fn";
+import { asArray, findKey, isArray, path, prop } from "../content/utils/json";
 
 browser.runtime.onInstalled.addListener(() => {
   void applyDefaultSettings();
@@ -46,7 +48,7 @@ browser.runtime.onStartup.addListener(() => {
 
 async function listenInstagram(
   details: browser.webRequest._OnBeforeRequestDetails,
-  jsonData: Record<string, any>,
+  jsonData: unknown,
 ) {
   switch (details.url) {
     case "https://www.instagram.com/api/graphql":
@@ -57,12 +59,13 @@ async function listenInstagram(
       break;
     default:
       if (details.url.startsWith("https://www.instagram.com/api/v1/feed/reels_media/?reel_ids=")) {
-        const { reels_media } = await browser.storage.local.get(["reels_media"]);
-        const newArr = (reels_media || []).filter(
-          (i: ReelsMedia.ReelsMedum) =>
-            !(jsonData as ReelsMedia.Root).reels_media.find((j) => j.id === i.id),
-        );
-        await browser.storage.local.set({ reels_media: [...newArr, ...jsonData.reels_media] });
+        const { reels_media } = (await browser.storage.local.get(["reels_media"])) as {
+          reels_media?: ReelsMedia.ReelsMedum[];
+        };
+        const incoming = (jsonData as ReelsMedia.Root).reels_media;
+        // Replace any tray entry this response also carries, keep the rest.
+        const newArr = (reels_media ?? []).filter((i) => !incoming.find((j) => j.id === i.id));
+        await browser.storage.local.set({ reels_media: [...newArr, ...incoming] });
       }
       break;
   }
@@ -70,15 +73,18 @@ async function listenInstagram(
 
 async function listenThreads(
   details: browser.webRequest._OnBeforeRequestDetails,
-  jsonData: Record<string, any>,
+  jsonData: unknown,
 ) {
-  async function addThreads(data: any[]) {
-    const { threads } = await browser.storage.local.get(["threads"]);
-    const newMap = new Map(threads);
+  async function addThreads(data: unknown[]) {
+    const { threads } = (await browser.storage.local.get(["threads"])) as {
+      threads?: [string, unknown][];
+    };
+    const newMap = new Map(threads ?? []);
     for (const item of data) {
       if (!item) continue;
-      const code = item.post?.code || item.code;
-      if (code) {
+      // A thread item wraps its post; a bare post carries the code itself.
+      const code = path(item, "post", "code") ?? prop(item, "code");
+      if (typeof code === "string") {
         newMap.delete(code);
         newMap.set(code, item);
       }
@@ -87,46 +93,47 @@ async function listenThreads(
     await browser.storage.local.set({ threads: Array.from(newMap) });
   }
 
+  /** The thread items under `data.<key>.edges`, at whichever depth they sit. */
+  const itemsUnder = (key: string, ...rest: string[]) =>
+    asArray(path(jsonData, "data", key, "edges")).flatMap((i) =>
+      asArray(rest.length > 0 ? path(i, ...rest) : path(i, "node", "thread_items")),
+    );
+
   // The home feed's pages arrive on /api/graphql (measured 2026-10-12);
   // profile pages still come through /graphql/query.
   if (
     details.url === "https://www.threads.com/graphql/query" ||
     details.url === "https://www.threads.com/api/graphql"
   ) {
-    if (Array.isArray(jsonData.data?.feedData?.edges)) {
-      const data = jsonData.data.feedData.edges.flatMap(
-        (i: any) =>
-          i.node?.text_post_app_thread?.thread_items ||
-          i.node?.thread_items ||
-          i.text_post_app_thread?.thread_items,
+    if (isArray(path(jsonData, "data", "feedData", "edges"))) {
+      await addThreads(
+        asArray(path(jsonData, "data", "feedData", "edges")).flatMap((i) =>
+          asArray(
+            path(i, "node", "text_post_app_thread", "thread_items") ??
+              path(i, "node", "thread_items") ??
+              path(i, "text_post_app_thread", "thread_items"),
+          ),
+        ),
       );
-      await addThreads(data);
-    } else if (Array.isArray(jsonData.data?.mediaData?.edges)) {
-      const data = jsonData.data.mediaData.edges.flatMap((i: any) => i.node.thread_items);
-      await addThreads(data);
-    } else if (Array.isArray(jsonData.data?.data?.edges)) {
-      const data = jsonData.data.data.edges.flatMap((i: any) => i.node.thread_items);
-      await addThreads(data);
-    } else if (typeof jsonData.data?.replyPost === "object") {
-      await addThreads([jsonData.data.replyPost]);
-    } else if (Array.isArray(jsonData.data?.searchResults?.edges)) {
-      const data = jsonData.data.searchResults.edges.flatMap(
-        (i: any) => i.node.thread.thread_items,
-      );
-      await addThreads(data);
-    } else if (Array.isArray(jsonData.data?.results?.edges)) {
-      const data = jsonData.data.results.edges.flatMap((i: any) => i.node.thread_items);
-      await addThreads(data);
-    } else if (typeof jsonData.data?.data === "object") {
-      const data = jsonData.data.data;
-      await addThreads([data]);
+    } else if (isArray(path(jsonData, "data", "mediaData", "edges"))) {
+      await addThreads(itemsUnder("mediaData"));
+    } else if (isArray(path(jsonData, "data", "data", "edges"))) {
+      await addThreads(itemsUnder("data"));
+    } else if (typeof path(jsonData, "data", "replyPost") === "object") {
+      await addThreads([path(jsonData, "data", "replyPost")]);
+    } else if (isArray(path(jsonData, "data", "searchResults", "edges"))) {
+      await addThreads(itemsUnder("searchResults", "node", "thread", "thread_items"));
+    } else if (isArray(path(jsonData, "data", "results", "edges"))) {
+      await addThreads(itemsUnder("results"));
+    } else if (typeof path(jsonData, "data", "data") === "object") {
+      await addThreads([path(jsonData, "data", "data")]);
     }
   }
 
   if (details.url === "https://www.threads.com/ajax/route-definition/") {
-    const result = findValueByKey(jsonData, "searchResults");
-    if (result && Array.isArray(result.edges)) {
-      await addThreads(result.edges.flatMap((i: any) => i.node.thread.thread_items));
+    const edges = path(findKey(jsonData, "searchResults"), "edges");
+    if (isArray(edges)) {
+      await addThreads(edges.flatMap((i) => asArray(path(i, "node", "thread", "thread_items"))));
     }
   }
 }
@@ -136,7 +143,7 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
   const decoder = new TextDecoder("utf-8");
   const encoder = new TextEncoder();
 
-  let data: any[] = [];
+  let data: ArrayBuffer[] = [];
   filter.ondata = (event: { data: ArrayBuffer }) => {
     data.push(event.data);
   };
@@ -153,19 +160,14 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
 
   const onStop = async () => {
     let str = "";
-    if (data.length === 1) {
-      str = decoder.decode(data[0]);
-    } else {
-      for (let i = 0; i < data.length; i++) {
-        const stream = i !== data.length - 1;
-        str += decoder.decode(data[i], { stream });
-      }
+    for (const [i, chunk] of data.entries()) {
+      str += decoder.decode(chunk, { stream: i !== data.length - 1 });
     }
     data = [];
 
     // !use try catch to avoid error that may cause page not working
     try {
-      const jsonData = JSON.parse(str);
+      const jsonData: unknown = JSON.parse(str);
       // Not awaited: the response reaches the page only when `finally` writes
       // it, so waiting on storage here would stall Instagram. Failures are
       // still logged instead of surfacing as unhandled rejections.
@@ -186,22 +188,24 @@ function listener(details: browser.webRequest._OnBeforeRequestDetails) {
         // record opened stories by user_id and username
         // routePath	"/stories/{username}/{?initial_media_id}/"
         if (details.url === "https://www.instagram.com/ajax/bulk-route-definitions/" && body) {
-          const {
-            payload: { payloads },
-          } = JSON.parse(body);
-          const { stories_user_ids, id_to_username_map } = await browser.storage.local.get([
+          const payloads = path(JSON.parse(body), "payload", "payloads");
+          const { stories_user_ids, id_to_username_map } = (await browser.storage.local.get([
             "stories_user_ids",
             "id_to_username_map",
-          ]);
-          const nameToId = new Map(stories_user_ids);
-          const idToName = new Map(id_to_username_map);
-          for (const [key, value] of Object.entries(payloads)) {
-            if (key.startsWith("/stories/")) {
-              // @ts-expect-error value is unknown
-              const { rootView } = value.result.exports;
-              nameToId.set(key.split("/")[2], rootView.props.user_id);
-              idToName.set(rootView.props.user_id, key.split("/")[2]);
-            }
+          ])) as {
+            stories_user_ids?: [string, unknown][];
+            id_to_username_map?: [unknown, string][];
+          };
+          const nameToId = new Map<string, unknown>(stories_user_ids ?? []);
+          const idToName = new Map<unknown, string>(id_to_username_map ?? []);
+          for (const [key, value] of Object.entries(payloads ?? {})) {
+            if (!key.startsWith("/stories/")) continue;
+            // routePath is "/stories/{username}/{?initial_media_id}/".
+            const username = key.split("/")[2];
+            const userId = path(value, "result", "exports", "rootView", "props", "user_id");
+            if (username === undefined || userId === undefined) continue;
+            nameToId.set(username, userId);
+            idToName.set(userId, username);
           }
           // Not awaited, like the JSON branch above: `finally` releases the
           // response to the page, so storage must not hold it up.
@@ -294,47 +298,49 @@ function reportDownloadFailures(id: number, filename: string, onDone?: () => voi
   browser.downloads.onChanged.addListener(onChanged);
 }
 
-browser.runtime.onMessage.addListener(async (message, sender) => {
-  console.log(message, sender);
-  const { type, data } = message;
-  switch (type) {
+browser.runtime.onMessage.addListener(async (rawMessage, sender) => {
+  console.log(rawMessage, sender);
+  const message = rawMessage as ContentMessage;
+  switch (message.type) {
     case MESSAGE_OPEN_URL:
-      await browser.tabs.create({ url: data, index: sender.tab!.index + 1 });
+      await browser.tabs.create({ url: message.data, index: sender.tab!.index + 1 });
       break;
     case MESSAGE_FILE_DOWNLOAD: {
+      const { url, filename } = message.data;
       // `filename` carries the `@username/` subpath. Verified that Firefox
       // honors a relative subdirectory here, same as Chrome.
       try {
         const id = await browser.downloads.download({
-          url: data.url,
-          filename: data.filename,
+          url,
+          filename,
           conflictAction: "uniquify",
         });
-        reportDownloadFailures(id, data.filename);
+        reportDownloadFailures(id, filename);
         return { ok: true, id };
-      } catch (e: any) {
-        const error = String(e?.message ?? e);
-        console.error(`Could not start download of ${data.filename}: ${error}`);
+      } catch (e) {
+        const error = e instanceof Error ? e.message : String(e);
+        console.error(`Could not start download of ${filename}: ${error}`);
         return { ok: false, error };
       }
     }
     case MESSAGE_BLOB_DOWNLOAD: {
+      const { blob, filename } = message.data;
       // A muxed DASH video from the content script. The background page has a
       // DOM, so it can mint its own blob: URL for downloads to read; the
       // content script's URL belongs to the page and is not readable here.
-      const url = URL.createObjectURL(data.blob);
+      const url = URL.createObjectURL(blob);
       try {
         const id = await browser.downloads.download({
           url,
-          filename: data.filename,
+          filename,
           conflictAction: "uniquify",
         });
-        reportDownloadFailures(id, data.filename, () => URL.revokeObjectURL(url));
+        reportDownloadFailures(id, filename, () => URL.revokeObjectURL(url));
         return { ok: true, id };
-      } catch (e: any) {
+      } catch (e) {
         URL.revokeObjectURL(url);
-        const error = String(e?.message ?? e);
-        console.error(`Could not start download of ${data.filename}: ${error}`);
+        const error = e instanceof Error ? e.message : String(e);
+        console.error(`Could not start download of ${filename}: ${error}`);
         return { ok: false, error };
       }
     }

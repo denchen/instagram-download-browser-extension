@@ -11,7 +11,7 @@ for (const elem of permissionRequestButtons) {
   elem.addEventListener("click", (event) => void permissionsRequest(event));
 }
 
-async function permissionsRequest(event: any) {
+async function permissionsRequest(event: Event) {
   event.stopPropagation();
   const result = await browser.permissions.request(PERMISSIONS);
 

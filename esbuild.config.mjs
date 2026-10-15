@@ -15,8 +15,8 @@ try {
   await rm(`dist/${platform}`, { recursive: true });
 } catch {}
 
-const manifest = JSON.parse(
-  await readFile(`./src/manifest.${platform}.json`, { encoding: "utf8" }),
+const manifest = /** @type {{ content_scripts: { js: string[] }[], version?: string }} */ (
+  JSON.parse(await readFile(`./src/manifest.${platform}.json`, { encoding: "utf8" }))
 );
 
 // content_scripts run as classic scripts, where an `import` stops the whole

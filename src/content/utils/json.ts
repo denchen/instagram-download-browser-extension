@@ -19,7 +19,16 @@ export function path(value: unknown, ...keys: string[]): unknown {
   return keys.reduce<unknown>((current, key) => prop(current, key), value);
 }
 
-/** The first value under `key`, however deeply nested. */
+/**
+ * The first value under `key`, however deeply nested.
+ *
+ * A direct hit wins over a nested one: `{a: {k: 1}, k: 2}` gives 2. The
+ * hand-rolled walks this replaced returned 1, because they tested each
+ * property in turn rather than the object first. Every key these are used
+ * with -- a GraphQL connection name, `searchResults`, `rootView` -- appears
+ * once in a payload, so the two agree in practice; shallow-first is simply
+ * the rule that can be stated.
+ */
 export function findKey(value: unknown, key: string): unknown {
   if (typeof value !== "object" || value === null) return undefined;
   if (Object.hasOwn(value, key)) return (value as Record<string, unknown>)[key];
