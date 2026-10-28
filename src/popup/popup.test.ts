@@ -7,6 +7,14 @@ import { CONFIG_LIST } from "../constants";
 
 const html = readFileSync(resolve(import.meta.dirname, "../../public/popup/index.html"), "utf8");
 
+// The test imports the entry point itself and asserts on structure, not style,
+// so the markup's own <script src> and <link rel="stylesheet"> leave happy-dom
+// logging a failed fetch for each one on every parse.
+const stripSubresources = (markup: string) =>
+  markup
+    .replaceAll(/<script\b[^>]*>[\s\S]*?<\/script>/g, "")
+    .replaceAll(/<link\b[^>]*rel=["']?stylesheet["']?[^>]*>/g, "");
+
 const checkbox = (id: string) => document.querySelector<HTMLInputElement>(`#${id}`);
 
 // The stored settings arrive asynchronously; open-in-new-tab is stored as true
@@ -35,7 +43,10 @@ describe("popup", () => {
         },
       },
     });
-    document.body.innerHTML = new DOMParser().parseFromString(html, "text/html").body.innerHTML;
+    document.body.innerHTML = new DOMParser().parseFromString(
+      stripSubresources(html),
+      "text/html",
+    ).body.innerHTML;
     vi.resetModules();
     await import("./index");
   });
