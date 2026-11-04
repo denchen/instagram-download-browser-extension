@@ -67,7 +67,9 @@ export class ReelsPageHandler implements PageHandler {
       });
     };
 
-    const code = window.location.pathname.split("/").at(-2);
+    // Last non-empty segment, so a link opened without the trailing slash
+    // still names the reel.
+    const code = window.location.pathname.split("/").filter(Boolean).at(-1);
     const { reels_edges_data } = (await chrome.storage.local.get(["reels_edges_data"])) as {
       reels_edges_data?: [string, Reels.Media][];
     };

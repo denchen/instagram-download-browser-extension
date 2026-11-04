@@ -83,8 +83,10 @@ export function findPostId(articleNode: HTMLElement, pathname = window.location.
   }
 
   // A permalink names the post outright, so there is nothing to infer. Covers
-  // both `/p/<code>/` and the `/<username>/p/<code>/` form.
-  const fromUrl = pathname.match(/^\/(?:[^/]+\/)?p\/([^/]+)\//);
+  // both `/p/<code>/` and the `/<username>/p/<code>/` form. The trailing slash
+  // is optional: a shared link opened directly has no slash, and without this
+  // the page falls through to scraping the related-posts rail and refuses.
+  const fromUrl = pathname.match(/^\/(?:[^/]+\/)?p\/([^/]+)(?:\/|$)/);
   if (fromUrl) return fromUrl[1];
 
   // `/p/<code>/` and `/reel/<code>/` both yield a shortcode findMediaId can
