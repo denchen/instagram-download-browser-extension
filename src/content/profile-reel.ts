@@ -142,7 +142,9 @@ export class ReelPageHandler implements PageHandler {
   }
 
   async onCustomButtonClick(target: HTMLAnchorElement) {
-    const code = window.location.pathname.split("/").at(-2);
+    // Last non-empty segment, so a link opened without the trailing slash
+    // still names the reel.
+    const code = window.location.pathname.split("/").filter(Boolean).at(-1);
 
     const final = (obj: DownloadParams) => {
       if (target.className.includes("download-btn")) {

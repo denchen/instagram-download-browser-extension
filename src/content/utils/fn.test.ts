@@ -30,6 +30,10 @@ describe("findPostId", () => {
     ["/stories/some_user/3456789/", "3456789"],
     ["/p/POSTCODE/", "POSTCODE"],
     ["/some_user/p/POSTCODE/", "POSTCODE"],
+    // A shared link opened directly has no trailing slash.
+    ["/p/POSTCODE", "POSTCODE"],
+    ["/some_user/p/POSTCODE", "POSTCODE"],
+    ["/reel/REELCODE", "REELCODE"],
   ])("reads the id straight off %s", (pathname, id) => {
     // The container's link would be a different post: the URL must win.
     expect(fn.findPostId(container(["/p/OTHER/"]), pathname)).toBe(id);
