@@ -53,7 +53,7 @@ disappears the day you clean up old authorizations. That has already happened on
 `gh` does not use the SSH key; it needs a token, and that token should not be the classic
 all-repos kind. Create a fine-grained one at
 [Settings → Developer settings → Fine-grained tokens](https://github.com/settings/personal-access-tokens/new):
-expiration one year, repository access **Only select repositories** with this repo, and these
+expiration 90 days, repository access **Only select repositories** with this repo, and these
 repository permissions (everything else "No access"):
 
 | Permission        | Level          | Needed for                   |
@@ -74,7 +74,7 @@ pbpaste | GH_CONFIG_DIR=~/.config/gh-personal gh auth login --hostname github.co
 ```
 
 `GH_CONFIG_DIR` is what keeps this login apart from the work one; `.envrc` in the repo exports it,
-so inside the repo plain `gh` is the personal one. The token expires after a year: when `gh`
+so inside the repo plain `gh` is the personal one. The token expires after 90 days: when `gh`
 starts answering 401, make a new one the same way. To use `gh` with another personal repo, add
 that repo to the token's list rather than making a broader token.
 
