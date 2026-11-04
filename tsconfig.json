@@ -21,7 +21,12 @@
     "noUnusedParameters": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
-    "types": ["chrome-types", "firefox-webext-browser"]
+    // chrome-types' default entry point declares a global `browser` namespace
+    // alongside `chrome`. That collides with firefox-webext-browser, which the
+    // firefox background script is typed against, and the collision surfaces as
+    // lost inference rather than a duplicate-identifier error. The no-browser
+    // entry point declares `chrome` only.
+    "types": ["chrome-types/no-browser", "firefox-webext-browser"]
   },
   "exclude": ["node_modules", "public", "dist"]
 }
