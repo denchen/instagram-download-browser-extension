@@ -211,6 +211,13 @@ Downloads are `@username/[type - ]YYYY.MM.DDTHH.mm.ss[ NN].ext` in UTC.
 - **A type prefix marks the cases whose timestamp is the download time, not a post time.**
   `profile - ` and `cover - ` have no post time available; the prefix is what stops a meaningless
   timestamp reading as a real one.
+- **Every item of a carousel is named by the post's `taken_at`, never its own.** A carousel child
+  carries a `taken_at` of its own, off the post's by a second or so (measured 2026-11-12: -1s on
+  both children of a two-slide post), so reading it would name one slide differently depending on
+  which button was clicked. `getUrlFromInfoApi` overrides the child's with the post's for the
+  single-download path, and `handleDownloadAll` passes the post's; the ` NN` ordinal is what keeps
+  slides distinct. Stories and highlights are the opposite case: each tray item is its own post, so
+  each carries the timestamp that names it.
 - **Prefer failing visibly over guessing.** An ambiguous carousel index refuses rather than picking
   one; an unresolved username files under `@unknown/` with a warning rather than silently dropping
   the folder.

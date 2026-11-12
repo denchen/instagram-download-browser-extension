@@ -93,7 +93,6 @@ export function slimPost(media: CachedPost): CachedPost {
     post.carousel_media = media.carousel_media.map((slide) => {
       const item = slimRenditions(slide);
       if (slide.owner?.username) item.owner = { username: slide.owner.username };
-      if (slide.taken_at !== undefined) item.taken_at = slide.taken_at;
       return item;
     });
   } else {

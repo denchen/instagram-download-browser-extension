@@ -33,13 +33,13 @@ export async function handleDownloadAll(articleNode: HTMLElement) {
     return;
   }
 
-  // `index` keeps slides distinct, since they normally share the post's
-  // timestamp.
+  // The post's timestamp, never the slide's own: see AGENTS.md "Filename
+  // invariants". `index` is what keeps the slides distinct.
   for (const [i, resource] of slides.entries()) {
     await downloadResource({
       url: getImgOrVideoUrl(resource),
       username: resource.owner?.username || data.owner?.username,
-      datetime: fromUnixSeconds(resource.taken_at ?? data.taken_at),
+      datetime: fromUnixSeconds(data.taken_at),
       index: i + 1,
       type: MediaType.Post,
     });
