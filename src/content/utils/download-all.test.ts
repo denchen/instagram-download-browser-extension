@@ -47,13 +47,15 @@ describe("handleDownloadAll", () => {
     ]);
   });
 
-  it("uses a slide's own owner and time when it has them", async () => {
+  it("uses a slide's own owner, but never its own timestamp", async () => {
     const slide = photo("a", { owner: owner("slide_owner"), taken_at: TAKEN_AT + 60 });
     vi.mocked(getDataFromAPI).mockResolvedValue(carousel([slide]));
     await handleDownloadAll(article);
     expect(downloads()[0]).toMatchObject({
       username: "slide_owner",
-      datetime: new Date((TAKEN_AT + 60) * 1000),
+      // The post's, not the slide's: the single-download path forces the
+      // post's too, so the same slide must not get two different names.
+      datetime: new Date(TAKEN_AT * 1000),
     });
   });
 

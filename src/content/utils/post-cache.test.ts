@@ -120,7 +120,12 @@ describe("slimPost", () => {
 
   it("keeps every carousel slide with its own pick and owner", () => {
     const original = carousel(
-      [photo("s0"), video("s1"), photo("s2", { owner: owner("slide_owner") })],
+      [
+        photo("s0"),
+        video("s1"),
+        // A real child carries a taken_at a second or so off the post's.
+        photo("s2", { owner: owner("slide_owner"), taken_at: TAKEN_AT - 1 }),
+      ],
       { code: "C" },
     );
     const slim = slimPost(original);
@@ -129,6 +134,9 @@ describe("slimPost", () => {
     );
     expect(slim.carousel_media![2]!.owner).toStrictEqual(owner("slide_owner"));
     expect(slim).toMatchObject({ taken_at: TAKEN_AT, owner: owner("post_owner") });
+    // Not a slide's own taken_at: nothing reads one, and the download paths
+    // name every slide by the post's time.
+    expect(slim.carousel_media!.every((slide) => slide.taken_at === undefined)).toBe(true);
   });
 
   it("leaves carousel_media unset on a single post, since callers test `in`", () => {
