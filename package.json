@@ -34,22 +34,22 @@
     "fmt:check": "oxfmt --check"
   },
   "dependencies": {
-    "mediabunny": "1.63.0"
+    "mediabunny": "1.65.2"
   },
   "devDependencies": {
-    "@oxlint/plugins": "^1.90.0",
+    "@oxlint/plugins": "^1.91.0",
     "@resvg/resvg-js": "^2.6.2",
     "@types/firefox-webext-browser": "^143.0.1",
-    "chrome-types": "0.1.460",
+    "chrome-types": "0.1.461",
     "esbuild": "^0.28.2",
     "esbuild-sass-plugin": "^3.7.0",
     "happy-dom": "^21.0.4",
-    "oxfmt": "^0.75.0",
-    "oxlint": "^1.90.0",
-    "oxlint-tsgolint": "^7.0.2005",
-    "sass-embedded": "^1.106.1",
+    "oxfmt": "^0.76.0",
+    "oxlint": "^1.91.0",
+    "oxlint-tsgolint": "^7.0.2006",
+    "sass-embedded": "^1.107.1",
     "typescript": "^7.0.2",
-    "vitest": "^5.0.5",
+    "vitest": "^5.1.0",
     "web-ext": "^10.8.0"
   },
   "engines": {
